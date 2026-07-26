@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cola apresentador — DataMaster (tela privada)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #141c2e;
+      --border: rgba(148, 163, 184, 0.22);
+      --accent: #22d3ee;
+      --warn: #fcd34d;
+      --ok: #4ade80;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 18, 32, 0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.1rem;
+      backdrop-filter: blur(8px);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 0.2rem 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .badge {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(252, 211, 77, 0.15);
+      color: var(--warn);
+      font-size: 0.72rem;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.55rem;
+    }
+    nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.78rem;
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      border-radius: 999px;
+      padding: 0.18rem 0.55rem;
+    }
+    nav a:hover { background: rgba(34, 211, 238, 0.12); }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 1rem 1.1rem 3rem;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      margin: 0.85rem 0;
+    }
+    h2 {
+      margin: 0 0 0.55rem;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+    h3 {
+      margin: 0.7rem 0 0.35rem;
+      font-size: 0.88rem;
+      color: var(--warn);
+    }
+    ul { margin: 0.25rem 0 0; padding-left: 1.15rem; }
+    li { margin: 0.22rem 0; }
+    .why {
+      border-left: 3px solid var(--ok);
+      padding: 0.45rem 0.7rem;
+      margin: 0.45rem 0;
+      background: rgba(74, 222, 128, 0.06);
+      border-radius: 0 8px 8px 0;
+    }
+    .demo {
+      border-left: 3px solid var(--accent);
+      padding: 0.45rem 0.7rem;
+      margin: 0.45rem 0;
+      background: rgba(34, 211, 238, 0.06);
+      border-radius: 0 8px 8px 0;
+    }
+    code, pre {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+    }
+    code {
+      background: rgba(0,0,0,0.35);
+      padding: 0.08rem 0.28rem;
+      border-radius: 4px;
+    }
+    pre {
+      background: #070b14;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      padding: 0.35rem 0.4rem;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    .screens {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+    @media (max-width: 720px) {
+      .screens { grid-template-columns: 1fr; }
+    }
+    .screen-card {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 0.6rem 0.75rem;
+    }
+    .screen-card strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cola do apresentador <span class="badge">NÃO compartilhar no Meet</span></h1>
+    <p>
+      Tela privada · Meet: compartilhe só <code>banca.html</code>.
+      Slides limpos = teoria/porquê. Aqui = demo, comandos e falas.
+    </p>
+    <nav>
+      <a href="#setup">Setup Meet</a>
+      <a href="#porques">Porquês</a>
+      <a href="#t1">Tópico 1</a>
+      <a href="#demos">Demos por slide</a>
+      <a href="#defesa-kafka-cloud">Kafka cloud</a>
+      <a href="#defesa-postgres">Tópico 3 defesas</a>
+      <a href="#defesa-obs">Observabilidade</a>
+      <a href="#defesa-seg">Segurança 360°</a>
+      <a href="#defesa-lgpd">LGPD</a>
+      <a href="#defesa-arq">Arquitetura</a>
+      <a href="#defesa-escala">Escalabilidade</a>
+      <a href="#t13">Trilha T0–T12</a>
+      <a href="#cmds">Comandos</a>
+      <a href="http://localhost:8880/banca.html" target="_blank" rel="noopener">Abrir banca</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="setup">
+      <h2>Setup Meet — duas telas</h2>
+      <div class="screens">
+        <div class="screen-card">
+          <strong>Tela 1 · compartilhada</strong>
+          <ul>
+            <li><a href="http://localhost:8880/banca.html" target="_blank" rel="noopener">banca.html</a></li>
+            <li>Só conteúdo para a banca (sem “Demo ao vivo”)</li>
+            <li>Navegue com ← →</li>
+          </ul>
+        </div>
+        <div class="screen-card">
+          <strong>Tela 2 · só você</strong>
+          <ul>
+            <li>Esta página: <code>/cola.html</code></li>
+            <li>Terminal + console :3333 conforme o slide</li>
+            <li>Não compartilhe esta janela</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin:0.7rem 0 0;color:var(--muted);font-size:0.85rem;">
+        Mantra: o <strong style="color:var(--ok)">porquê</strong> manda; o quê só comprova.
+        Fórmula: problema → escolhi X porque… → alternativa Y → na mesa mostro…
+      </p>
+    </section>
+
+    <section id="porques">
+      <h2>Porquês em 1 linha</h2>
+      <table>
+        <thead><tr><th>Tópico</th><th>Fala</th></tr></thead>
+        <tbody>
+          <tr><td>Extração</td><td>Escolhi adapter porque o modelo não pode depender do schema do core</td></tr>
+          <tr><td>Ingestão</td><td>Stream porque latência + fato async; batch porque histórico e perfis</td></tr>
+          <tr><td>Online</td><td>Score sync; Kafka = fato; Rabbit = tarefa e-mail (não “para estudar”)</td></tr>
+          <tr><td>Lake</td><td>Medallion porque reprocesso sem perder a landing</td></tr>
+          <tr><td>Mongo</td><td>Documento por user_id porque online precisa de ms, não scan no lake</td></tr>
+          <tr><td>Obs</td><td>Prometheus coleta e Grafana mostra — papéis separados</td></tr>
+          <tr><td>Segurança</td><td>Secrets fora do código porque rotação e blast radius</td></tr>
+          <tr><td>LGPD</td><td>Mascaro na borda porque preciso de sinal, não de PII em claro</td></tr>
+          <tr><td>Arquitetura</td><td>Medallion = engenharia; Kimball = BI; perfil = serving</td></tr>
+          <tr><td>Escala</td><td>Particiono porque réplica sem chave certa não remove gargalo</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="t1">
+      <h2>Tópico 1 — Extração · o que você consolidou no treino</h2>
+      <div class="why">
+        <strong>Problema:</strong> fontes heterogêneas. Sem contrato, cada mudança no core quebra modelo/lake/API.<br>
+        <strong>Por quê adapter:</strong> desacopla — normaliza para o canônico; muda a fonte, não o scoring.<br>
+        <strong>Por quê simulador:</strong> não tenho core na sala; volume controlado e reprodutível.
+      </div>
+      <h3>Fala (~40 s) — slide 5</h3>
+      <p style="margin:0.3rem 0;">
+        “Extração, para mim, é <strong>contrato</strong>. O problema é fonte heterogênea.
+        Eu simulo o core na mesa e uso adapters para normalizar.
+        Assim o scoring não depende do schema de quem enviou.
+        Em Azure isso vira Event Hubs ou ADF para o ADLS; em AWS, Kinesis ou Glue no S3 — o porquê é o mesmo.”
+      </p>
+      <h3>Cloud (não overclaim)</h3>
+      <ul>
+        <li>Azure: Event Hubs producer + ADF Copy → ADLS Raw/Bronze</li>
+        <li>AWS: Kinesis/MSK + Glue/Step Functions → S3 Raw/Bronze</li>
+        <li>Adapter/job normaliza — padrão igual ao <code>transaction_adapters.py</code></li>
+      </ul>
+      <h3>Trade-off (se perguntarem)</h3>
+      <ul>
+        <li>Rejeitei ligar o modelo direto no core: POC rápido, dívida de schema.</li>
+        <li>Schema Registry (Avro): mais governança, overhead no POC da mesa.</li>
+      </ul>
+      <div class="demo">
+        <strong>Demo ao vivo · slide 5 (só nesta cola)</strong>
+        <ul>
+          <li>Console <a href="http://localhost:3333" target="_blank" rel="noopener">:3333</a> → Gerar JSON</li>
+          <li>Mostrar <code>data/transactions.json</code> (= landing / Bronze)</li>
+          <li>Abrir <code>src/data_ingestion/transaction_adapters.py</code> → <code>from_simulator_record</code></li>
+          <li>Narrativa: <code>event_hub_producer.py</code> (Event Hubs / Kinesis)</li>
+        </ul>
+        <pre>docker compose exec api python scripts/generate_data.py -n 100 -o data/transactions.json</pre>
+      </div>
+      <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--muted);">
+        Transição → slide 6: “Com o contrato, preciso <strong>ingerir</strong> — stream e batch.”
+      </p>
+    </section>
+
+    <section id="demos">
+      <h2>Demo ao vivo por slide (movido de fora da banca.html)</h2>
+
+      <h3>Slide 6 — Ingestão / Kafka</h3>
+      <div class="demo">
+        <ul>
+          <li><strong>Por quê:</strong> score HTTP síncrono; evento Kafka <em>assíncrono</em> depois (categoria para Negócios).</li>
+          <li>Kafka ≠ DW eterno — retenção/replay; Gold no lake por categoria.</li>
+          <li>Após analyze: dashboard aba <strong>Kafka / eventos do dia</strong> · Jupyter <code>02_kafka_consultas_dia.ipynb</code></li>
+        </ul>
+        <pre># Eventos do dia (espelho consultável)
+curl -s 'http://localhost:8080/api/v1/events/analyzed?date=today' | python3 -m json.tool | head -40
+
+# Consumer do fato publicado pela API
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
+  --topic transaction-analyzed --from-beginning --max-messages 3</pre>
+      </div>
+
+      <h3>Slide 6b — Online</h3>
+      <div class="demo">
+        <ul>
+          <li>Caminho: Console → API → Mongo → resposta</li>
+          <li>Sempre: Kafka <code>transaction-analyzed</code> (async)</li>
+          <li>Se fraude: Rabbit → email-worker</li>
+          <li>LB/Gateway apagados = produção, não mesa</li>
+        </ul>
+      </div>
+
+      <h3>Defesa — por que Kafka <em>e</em> Rabbit? (se a banca apertar)</h3>
+      <div class="why">
+        <strong>Não diga:</strong> “usei os dois para estudar.”<br>
+        <strong>Diga:</strong> problemas diferentes → ferramentas diferentes.
+        <ul>
+          <li><strong>Kafka = fato</strong> (“a análise aconteceu”) — log, volume, replay, vários consumidores, categoria para Negócios.</li>
+          <li><strong>Rabbit = tarefa</strong> (“envie o e-mail”) — work queue pontual; HTTP não espera SMTP.</li>
+        </ul>
+        <p style="margin:0.45rem 0 0;"><strong>Poderia só Kafka?</strong> Sim — consumer manda SMTP. Trade-off: overkill para alerta; misturam fato e tarefa; no cloud o par natural de e-mail é Service Bus/SQS.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Poderia só Rabbit?</strong> Sim para e-mail. Trade-off: fraco como log de negócio com replay → lake/Gold.</p>
+        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Eu poderia unificar. Separarei porque Kafka registra o fato e Rabbit executa a tarefa. Só Kafka deixa o alerta mais pesado; só Rabbit deixa fraco o barramento analítico. No cloud: Event Hubs + Service Bus — o porquê é o mesmo.”</p>
+      </div>
+
+      <h3 id="defesa-kafka-cloud">Defesa — por que não Kafka em Azure/AWS? (tópico 2)</h3>
+      <div class="why">
+        <strong>Poderia</strong> subir Kafka em qualquer nuvem (MSK, Confluent, AKS).<br>
+        <strong>Escolhi o PaaS nativo</strong> porque o desenho é o <em>papel</em>, não o logo do produto.
+        <ul>
+          <li><strong>Mesa / k3s:</strong> Kafka — broker que eu opero no Compose/cluster.</li>
+          <li><strong>Azure:</strong> Event Hubs — gerenciado, Capture → ADLS, mesmo problema (partições, consumers, replay).</li>
+          <li><strong>AWS:</strong> Kinesis ou MSK — Kinesis = stream gerenciado; MSK se eu quiser API Kafka.</li>
+        </ul>
+        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Na mesa uso Kafka. Na Azure o equivalente é Event Hubs — eu poderia instalar Kafka lá; preferiria Event Hubs para reduzir operação. O porquê não muda: fato assíncrono após o analyze. Um desenho, três lugares — o produto muda, o papel não.”</p>
+      </div>
+
+      <h3>Slide 7 / 7c — Medallion / stores</h3>
+      <div class="demo">
+        <ul>
+          <li><code>ls data/lake/bronze data/lake/silver data/lake/gold</code></li>
+          <li>Notebook <code>01_dataprep_dq.py</code> · Spark UI :18080 · MinIO :9001</li>
+          <li>Postgres = OLTP ref.; scoring = Mongo</li>
+        </ul>
+      </div>
+
+      <h3 id="defesa-postgres">Defesa — armazenamento (tópico 3)</h3>
+      <div class="why">
+        <p style="margin:0 0 0.4rem;"><strong>Por que não só Postgres?</strong><br>
+        Um banco só não atende as três cargas. Lake = histórico/reprocessar; Mongo = perfil online; Postgres = OLTP de referência.</p>
+        <p style="margin:0 0 0.4rem;"><strong>API usa Postgres?</strong> <em>Não</em> no scoring da demo. Score = Mongo + heurística. Postgres prova o schema OLTP (<code>\dt</code>). “Não é enfeite — é fronteira relacional; o caminho crítico do score é Mongo de propósito.”</p>
+        <p style="margin:0 0 0.4rem;"><strong>Por que Mongo e não o lake no /analyze?</strong> Lake é volume/reprocessamento; lookup a cada request faria scan e estouraria &lt;2s. Batch materializa perfil → Mongo; API só lê por <code>user_id</code>.</p>
+        <p style="margin:0 0 0.4rem;"><strong>Medallion:</strong> Bronze = bruto (replay); Silver = DQ/limpo; Gold = consumo ML/BI.</p>
+        <p style="margin:0;"><em>Fala 10:</em> “Separei por carga. Scoring é Mongo, não Postgres. Lake não serve o online — perfil vem pré-agregado. Negócios lê Gold, não Kafka.”</p>
+      </div>
+
+      <h3>Slide 7b — Batch → Mongo → API</h3>
+      <div class="demo">
+        <ul>
+          <li>Portal → Executar fluxo completo · ou <code>bash scripts/run_demo.sh</code></li>
+          <li><code>curl …/batch/profile-stats</code> → profileCount &gt; 0</li>
+          <li>Analyze com <code>user_id</code> (ver comandos abaixo)</li>
+        </ul>
+      </div>
+
+      <h3 id="defesa-obs">Slide 8 — Observabilidade</h3>
+      <div class="demo">
+        <ul>
+          <li>:9090 targets UP · :3000 dashboard DataMaster (T11)</li>
+          <li>Fala: coleta (Prometheus) ≠ visualização (Grafana)</li>
+          <li>SLI: latência <code>/analyze</code> · <code>/health</code> · taxa de erro</li>
+        </ul>
+      </div>
+      <div class="why">
+        <strong>Defesa — por que equivalência Monitor/CloudWatch (e não “só Prom/Grafana na nuvem”)?</strong>
+        <ul>
+          <li>Prometheus <em>pode</em> na nuvem (Azure/AWS Managed Prometheus + Managed Grafana).</li>
+          <li>Métrica de <em>PaaS</em> (Event Hubs, Cosmos, Databricks, Kinesis) <strong>não</strong> vem de scrape da minha app — só existe no Monitor/CloudWatch.</li>
+          <li>Equivalência = <strong>capacidade / papel</strong>, não “proibido usar Prometheus”.</li>
+          <li>Produção ideal: <strong>híbrido</strong> — Prom para app/K8s; nativo para PaaS; Grafana como visão única (datasource Azure Monitor/CW).</li>
+        </ul>
+        <p style="margin:0.4rem 0 0;"><em>Fala:</em> “Na mesa não existe Azure Monitor; Prometheus prova o pilar de métricas. Na nuvem mantenho o padrão aberto na app e uso o nativo para plataforma. O SLI é o mesmo.”</p>
+        <p style="margin:0.5rem 0 0;"><strong>Dynatrace / Datadog / New Relic?</strong> APM completo (métricas+traces+AIOps). Custo/lock. Equivalente no mapa: App Insights / X-Ray.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Kibana / ELK?</strong> Forte em <em>logs/busca</em> — não substitui Prometheus para SLO. Mesa: <code>docker logs</code>; nuvem: Log Analytics.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Por que não só Grafana?</strong> Grafana visualiza; precisa de fonte (Prometheus).</p>
+        <p style="margin:0.35rem 0 0;"><strong>Tracing na mesa?</strong> <strong style="color:var(--warn)">NÃO</strong> — mesa = métricas. Tracing distribuído = App Insights / X-Ray (nuvem). Não afirmar APM no Compose.</p>
+        <p style="margin:0.5rem 0 0;"><strong>SLIs (decore os 3):</strong></p>
+        <ul style="margin:0.2rem 0 0;">
+          <li>Latência do <code>/analyze</code> (meta &lt;2s)</li>
+          <li>Disponibilidade — <code>/health</code> / target UP</li>
+          <li>Taxa de erro (falhas vs sucesso)</li>
+        </ul>
+        <p style="margin:0.3rem 0 0;">SLO = meta (99,9%) · SLI = indicador medido.</p>
+        <p style="margin:0.5rem 0 0;"><strong>Classes (não misturar):</strong> Dynatrace = APM completo (≈ App Insights) · Kibana = logs/busca (≈ Log Analytics) · Prometheus = métricas · Grafana = visualização. Dynatrace <em>não</em> é “Kibana e mais” — famílias diferentes.</p>
+      </div>
+
+      <h3 id="defesa-seg">Slide 9 — Segurança</h3>
+      <div class="demo">
+        <ul>
+          <li>Honestidade: mesa = camada de aplicação; Vault/Entra/TLS = Terraform e desenho de produção</li>
+          <li>Prova prática no slide 10 (máscara ao vivo)</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Postura declarada — abra assim se apertarem</strong>
+        <p style="margin:0.35rem 0 0;"><em>“A superfície da demo é <strong>conscientemente aberta</strong>: é um laboratório numa rede Docker isolada, não um ambiente certificado. O que eu preciso provar aqui é o <strong>desenho</strong> de segurança e o controle de aplicação. Posso detalhar camada por camada o que existe e o que é produção.”</em></p>
+        <p style="margin:0.4rem 0 0;">Nunca dizer “é seguro”. Dizer <strong>“na mesa X, em produção Y, porque Z”</strong>. Banca perdoa lacuna assumida; não perdoa overclaim.</p>
+      </div>
+
+      <div class="why">
+        <strong>Q: “Você usa TLS no Kafka?”</strong>
+        <p style="margin:0.35rem 0 0;"><strong>Resposta:</strong> “Não. Na mesa o listener é <code>PLAINTEXT</code> em rede Docker interna (<code>kafka:29092</code>), sem exposição pública. Em produção, <strong>criptografia em trânsito é obrigatória</strong> e o padrão muda:”</p>
+        <table>
+          <thead><tr><th>Ambiente</th><th>Trânsito</th><th>AuthN</th><th>AuthZ</th></tr></thead>
+          <tbody>
+            <tr><td>Mesa (Compose)</td><td>PLAINTEXT · rede interna</td><td>—</td><td>—</td></tr>
+            <tr><td>Kafka self-managed</td><td><code>SASL_SSL</code> / mTLS</td><td>SCRAM ou cert</td><td><strong>ACL por tópico</strong></td></tr>
+            <tr><td>Azure Event Hubs</td><td>TLS 1.2 obrigatório</td><td>Entra ID (preferido) ou SAS</td><td>RBAC Sender/Receiver</td></tr>
+            <tr><td>AWS MSK</td><td>TLS in-transit + KMS at-rest</td><td>IAM auth ou mTLS</td><td>Policy IAM por tópico</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><em>Fecho:</em> “E tem um ponto de LGPD junto: o evento leva <strong>CPF e só o final do cartão</strong>. Em produção o CPF vai <strong>tokenizado</strong>, com retenção curta no tópico e o histórico longo no lake governado.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Q: “E OAuth2 / JWT? Como autentica quem chama a API?”</strong>
+        <ul>
+          <li><strong>Mesa:</strong> perfil <code>local</code> com Spring Security em <code>permitAll</code> — deliberado, para a banca chamar o <code>curl</code> sem fricção.</li>
+          <li><strong>No código já existe o hook:</strong> perfil <code>enterprise</code> com <code>oauth2ResourceServer(jwt)</code> e <code>/api/v1/**</code> autenticado (<code>SecurityConfig.java</code>). É esqueleto, não um IdP configurado — não invento issuer.</li>
+          <li><strong>Padrão de produção:</strong> API é <em>resource server</em>. Valida <strong>JWT assinado</strong> (RS256) contra o JWKS do Entra ID / Cognito: <code>iss</code>, <code>aud</code>, <code>exp</code>, assinatura e <strong>scope</strong>.</li>
+        </ul>
+        <table>
+          <thead><tr><th>Quem chama</th><th>Fluxo OAuth2</th><th>Por quê</th></tr></thead>
+          <tbody>
+            <tr><td>Sistema → API (core, batch)</td><td><strong>Client Credentials</strong></td><td>M2M, sem usuário; identidade da aplicação</td></tr>
+            <tr><td>Front SPA / analista</td><td><strong>Authorization Code + PKCE</strong></td><td>Nunca segredo no browser</td></tr>
+            <tr><td>Parceiro externo</td><td>mTLS + client credentials</td><td>Dupla prova de identidade</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><strong>Scopes por papel (least privilege):</strong> <code>fraud.score:write</code> (chamar <code>/analyze</code>) · <code>fraud.read</code> (consultar) · <code>fraud.admin</code> (liberar/bloquear) · <code>pii.read</code> <em>separado</em> — ver PII em claro é escopo próprio e auditado.</p>
+        <p style="margin:0.35rem 0 0;"><em>Por que JWT e não API key?</em> Key é segredo estático, sem expiração, sem escopo, sem identidade. JWT expira, carrega escopo/claims, é revogável no IdP e dá auditoria de <em>quem</em> chamou.</p>
+      </div>
+
+      <div class="why">
+        <strong>Q: “Como o seu front acessa a API?”</strong>
+        <ul>
+          <li><strong>Mesa — honestidade:</strong> o portal (<code>:8880</code>) faz <code>fetch</code> do browser direto na API <code>:8080</code>, com <code>@CrossOrigin("*")</code>. O Streamlit (<code>:8501</code>) chama <em>server-side</em> via <code>API_URL=http://api:8080</code> na rede interna.</li>
+          <li><strong>Risco que eu mesmo aponto:</strong> CORS <code>*</code> + sem token = qualquer origem chama. Aceitável em lab, <strong>não</strong> em produção.</li>
+          <li><strong>Produção:</strong> browser <strong>não</strong> fala com a API core. Fluxo: <em>Front → Front Door/WAF → API Gateway (valida JWT) → API core em rede privada</em>. CORS restrito à origem do app; token no header <code>Authorization</code>; nada de PII em query string (query vai para log de acesso).</li>
+          <li>O padrão do Streamlit — chamada <strong>server-side</strong> — já é o correto: o segredo fica no servidor, não no browser.</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Q: “Se colocar API Gateway, o que ele implementa?”</strong>
+        <p style="margin:0.35rem 0 0;">Gateway = <strong>ponto único de política</strong>. Tiro do código da API o que é preocupação transversal:</p>
+        <table>
+          <thead><tr><th>Função</th><th>Por que no gateway</th></tr></thead>
+          <tbody>
+            <tr><td>Terminação <strong>TLS</strong> + cert manager</td><td>Certificado num lugar só, rotação automática</td></tr>
+            <tr><td>Validação de <strong>JWT</strong> / OAuth2</td><td>Token inválido morre na borda, não gasta a API</td></tr>
+            <tr><td><strong>Rate limit</strong> e quota por cliente</td><td>Protege o motor de score de abuso e de vizinho barulhento</td></tr>
+            <tr><td><strong>WAF</strong> + IP allowlist</td><td>OWASP Top 10 antes da aplicação</td></tr>
+            <tr><td><strong>mTLS</strong> gateway → backend</td><td>API core só aceita o gateway; sem rota direta</td></tr>
+            <tr><td>Log scrubbing / mascaramento</td><td>PII não vaza para log de acesso</td></tr>
+            <tr><td>Versionamento, canary, roteamento</td><td>v1/v2 sem quebrar o core bancário</td></tr>
+            <tr><td>Observabilidade central</td><td>Latência e erro por consumidor, num só lugar</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;">Equivalência: <strong>Azure APIM / Front Door</strong> · <strong>AWS API Gateway + WAF</strong>. <em>Na mesa não existe</em> — está no diagrama online-gateway como roadmap. Se perguntarem “por que não subiu?”: “gateway sem IdP é caixa vazia; preferi provar o motor e desenhar a borda a encenar segurança.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Q: “Como é o acesso a Bronze / Silver / Gold?”</strong>
+        <p style="margin:0.35rem 0 0;"><strong>Mesa:</strong> MinIO com credencial única de laboratório (<code>minioadmin</code>) e buckets <code>bronze/silver/gold</code> criados no <code>minio-init</code>. <strong>Sem policy por camada</strong> — assumo.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Produção — identidade por workload, nunca chave compartilhada:</strong></p>
+        <table>
+          <thead><tr><th>Camada</th><th>Escreve</th><th>Lê</th><th>Controle</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Bronze</strong></td><td>Só o job de ingestão</td><td>Só engenharia + auditoria</td><td>Imutável (versioning/WORM) · PII tokenizada · retenção definida</td></tr>
+            <tr><td><strong>Silver</strong></td><td>Job de transformação</td><td>Engenharia + DS</td><td>Sem PII em claro · schema enforced</td></tr>
+            <tr><td><strong>Gold</strong></td><td>Job de agregação</td><td>BI / Negócio</td><td><strong>Sem PII</strong> — agregado por categoria/período</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><strong>Como se implementa:</strong> managed identity / IAM role <em>por job</em> (não usuário humano) → RBAC no container/prefixo (<code>Storage Blob Data Contributor</code> só na bronze para o ingestor) → ACL POSIX no ADLS ou bucket policy no S3 → <strong>Lake Formation / Unity Catalog</strong> para grão fino (coluna e linha) → <strong>CMK</strong> no Key Vault/KMS at-rest → <strong>private endpoint</strong>, lake sem rota pública.</p>
+        <p style="margin:0.4rem 0 0;"><em>Frase de ouro:</em> “O Medallion não é só qualidade de dado — é também <strong>fronteira de segurança</strong>. Quem lê a Gold nunca deveria conseguir ler a Bronze. Analista de negócio não precisa de CPF; precisa de fraude por categoria.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Q: “Tem senha no repositório?” — resposta honesta</strong>
+        <ul>
+          <li><strong>Sim, credenciais de laboratório</strong>: <code>admin123</code> (Mongo/Postgres), <code>minioadmin</code>, <code>datamaster</code> (Rabbit). São <strong>fixas de propósito e documentadas no portal</strong> para a banca reproduzir a stack.</li>
+          <li><strong>Não há segredo real versionado:</strong> <code>.gitignore</code> bloqueia <code>.env</code>, <code>secrets/</code>, <code>*.pem</code>, <code>*.key</code>, <code>tfstate</code>. Chave de API externa vem por variável de ambiente.</li>
+          <li>Todas já são lidas via <code>${VAR:-default}</code> — <strong>o caminho para o cofre já está aberto</strong>: em produção troco o default pela referência ao Key Vault / Secrets Manager, sem mudar código.</li>
+          <li><em>Fala:</em> “Senha de lab documentada é diferente de segredo vazado. O que eu não faço é commitar credencial de ambiente real — e a aplicação já lê tudo de env var, que é o pré-requisito do cofre.”</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Cola relâmpago — segurança em 1 linha cada</strong>
+        <table>
+          <thead><tr><th>Perguntaram</th><th>Diga</th></tr></thead>
+          <tbody>
+            <tr><td>TLS no Kafka?</td><td>Mesa PLAINTEXT em rede interna; prod SASL_SSL + ACL por tópico (Event Hubs/MSK já TLS)</td></tr>
+            <tr><td>OAuth2/JWT?</td><td>Resource server valida JWT do Entra/Cognito; client credentials M2M, PKCE p/ humano</td></tr>
+            <tr><td>API key serve?</td><td>Não: sem expiração, sem escopo, sem identidade</td></tr>
+            <tr><td>Front → API</td><td>Mesa CORS aberto (lab); prod passa por gateway, token no header, core em rede privada</td></tr>
+            <tr><td>Gateway faz o quê?</td><td>TLS, JWT, rate limit, WAF, mTLS backend, scrubbing de PII, versionamento</td></tr>
+            <tr><td>Acesso ao lake</td><td>Identidade por job + RBAC por camada; Gold sem PII; CMK + private endpoint</td></tr>
+            <tr><td>Segredos</td><td>Env var hoje → Key Vault/Secrets Manager sem mudar código</td></tr>
+            <tr><td>Auditoria</td><td>Activity Log/Diagnostic (Azure) · CloudTrail (AWS): quem leu qual dado</td></tr>
+            <tr><td>PII no evento?</td><td>CPF + <strong>só final do cartão</strong>; prod = CPF tokenizado, PAN nunca</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="defesa-lgpd">Slide 10 — LGPD</h3>
+      <div class="demo">
+        <ul>
+          <li>Dashboard :8501 → aba <strong>LGPD / mascaramento</strong> (prova visual antes × depois)</li>
+          <li>Ou curl abaixo (mesmo contrato da API)</li>
+        </ul>
+        <pre>curl -s -X POST http://localhost:8080/api/v1/lgpd/mask \
+  -H "Content-Type: application/json" \
+  -d '{"cpf":"123.456.789-00","email":"joao.silva@banco.com.br","phone":"(11) 98765-4321","name":"Joao Silva","card_number":"1234 5678 9012 3456"}' | python3 -m json.tool</pre>
+      </div>
+
+      <div class="why">
+        <strong>Postura — LGPD ≠ Segurança (não misture na banca)</strong>
+        <table>
+          <thead><tr><th>Slide 9 Segurança</th><th>Slide 10 LGPD</th></tr></thead>
+          <tbody>
+            <tr><td>Quem acessa · como protege o canal · cofre · identidade</td><td>O <em>dado pessoal</em> em si — minimizar, mascarar, finalidade</td></tr>
+            <tr><td>TLS, Vault, OAuth2, RBAC</td><td>DataMasker, minimização, retenção, PII fora de log/tela</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.35rem 0 0;"><em>Fala:</em> “Segurança protege o ativo; LGPD exige que eu <strong>não trate mais PII do que preciso</strong> e que o que aparece em tela/log já saia mascarado.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Três conceitos — DECORE (se errar um, perde nota)</strong>
+        <table>
+          <thead><tr><th>Técnica</th><th>Reversível?</th><th>Uso no DataMaster</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Mascaramento</strong></td><td>Parcial (ainda tem formato)</td><td>UI, dashboard, suporte, demo — <code>DataMasker</code></td></tr>
+            <tr><td><strong>Anonimização</strong></td><td><strong>Não</strong> (idealmente)</td><td>Analytics sem vínculo — hash+salt / agregar Gold</td></tr>
+            <tr><td><strong>Criptografia</strong></td><td><strong>Sim</strong> (com chave)</td><td>Repouso/trânsito — <em>não</em> substitui máscara na tela</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><strong>Armadilha clássica:</strong> “criptografei o disco, então estou LGPD.” → <strong>Não.</strong> Operador ainda vê PII em claro na API. Crypto e máscara resolvem problemas diferentes.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Armadilha 2:</strong> “mascarei = anonimizei.” → <strong>Não.</strong> Máscara ainda permite reidentificação parcial; anonimização exige irreversibilidade.</p>
+        <p style="margin:0.35rem 0 0;"><strong>Armadilha 3 (SHA / “cripto irreversível”):</strong> <strong>Hash ≠ criptografia.</strong> SHA-1/SHA-256/bcrypt = função de <em>hash</em> (mão única) — valida/compara, <strong>não descriptografa</strong>. Criptografia (AES, RSA…) = <em>sempre</em> pensada para reverter <strong>com a chave</strong>. Se a banca falar “criptografia irreversível”, corrija: “isso é hash, não crypto.”</p>
+        <table style="margin-top:0.45rem;">
+          <thead><tr><th>Família</th><th>Reversível?</th><th>Exemplos</th><th>Uso</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Criptografia</strong></td><td><strong>Sim</strong> (com chave)</td><td>AES, TLS, RSA</td><td>Proteger em trânsito/repouso e <em>recuperar</em> depois</td></tr>
+            <tr><td><strong>Hash</strong></td><td><strong>Não</strong> (por desenho)</td><td>SHA-256, bcrypt, HMAC</td><td>Integridade, senha, dedupe, anonimização analítica</td></tr>
+            <tr><td><strong>Hash + salt</strong></td><td>Não (melhor)</td><td>sha256(cpf + salt)</td><td>Dificulta rainbow table; ainda é <em>pseudônimo forte</em> se o universo for pequeno</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.35rem 0 0;"><em>Fala:</em> “SHA não é criptografia irreversível — é hash. Criptografia eu recupero com a chave; hash eu só comparo o digest.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Por quê mascarar na borda da API (e não só no front)</strong>
+        <ul>
+          <li>Um lugar só — painel, curl, jobs e futuros consumidores reutilizam o mesmo contrato.</li>
+          <li>Front mente fácil: DevTools ainda vê o JSON bruto se a API mandar PII em claro.</li>
+          <li><code>POST /api/v1/lgpd/mask</code> = prova para a banca sem depender da UI.</li>
+        </ul>
+        <p style="margin:0.35rem 0 0;"><em>Campos:</em> CPF · e-mail · telefone · nome · cartão (só final visível) — PII típica de canal.</p>
+      </div>
+
+      <div class="why">
+        <strong>Defesa — perguntas duras de LGPD</strong>
+        <table>
+          <thead><tr><th>Perguntaram</th><th>Diga</th></tr></thead>
+          <tbody>
+            <tr><td>Isso torna anônimo?</td><td><strong>Não</strong> — é mascaramento. Anonimização = irreversível (hash+salt / agregado Gold)</td></tr>
+            <tr><td>Base legal antifraude?</td><td>Narrativa: legítimo interesse / obrigação de segurança. Engenheiro foca <strong>minimização + proteção</strong> — não vira advogado na banca</td></tr>
+            <tr><td>Onde mais aplica?</td><td>Logs · exportações · ambientes não produtivos · e-mail de alerta · evento Kafka</td></tr>
+            <tr><td>PII no Kafka?</td><td>Evento: CPF + <strong>só final do cartão</strong>. Prod: CPF tokenizado, PAN nunca, retenção curta no tópico</td></tr>
+            <tr><td>Gold tem CPF?</td><td><strong>Não deve</strong> — Gold agregada p/ negócio (fraude × categoria). PII fica na Bronze governada</td></tr>
+            <tr><td>Só crypto no disco resolve?</td><td>Não — protege storage; operador ainda vê PII na API/tela</td></tr>
+            <tr><td>Tokenização de cartão?</td><td>Mais forte (PCI); mais infra. Mesa = last4; prod = vault/tokenização</td></tr>
+            <tr><td>Direito ao esquecimento?</td><td>Pipeline precisa de retenção + job de purge no lake/perfil; não é só “apagar no Mongo”</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="why">
+        <strong>Conceitos LGPD que engenheiro de dados DEVE citar</strong>
+        <table>
+          <thead><tr><th>Conceito</th><th>O que dizer na banca</th><th>No DataMaster</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Minimização</strong></td><td>Só o dado necessário para a finalidade</td><td>Score não precisa de CPF na tela; Gold sem PII</td></tr>
+            <tr><td><strong>Finalidade</strong></td><td>Trato para antifraude — não reuso livre p/ marketing</td><td>Pipeline de fraude ≠ dump genérico</td></tr>
+            <tr><td><strong>Base legal</strong></td><td>Legítimo interesse / segurança (narrativa); engenheiro não vira advogado</td><td>Foco em proteção + minimização</td></tr>
+            <tr><td><strong>PII / dado pessoal</strong></td><td>Identifica ou pode identificar (CPF, e-mail, cartão…)</td><td>DataMasker cobre os típicos de canal</td></tr>
+            <tr><td><strong>Mascaramento</strong></td><td>Esconde na UI; <strong>ainda é dado pessoal</strong></td><td><code>/lgpd/mask</code> · aba LGPD</td></tr>
+            <tr><td><strong>Anonimização</strong></td><td>Irreversível — sem dono reidentificável</td><td>Hash+salt / agregado Gold</td></tr>
+            <tr><td><strong>Pseudonimização</strong></td><td>Troca por ID; <em>com chave</em> ainda reidentifica</td><td>user_id no perfil; token no Kafka (prod)</td></tr>
+            <tr><td><strong>Criptografia</strong></td><td>Protege canal/storage; <strong>não</strong> substitui máscara</td><td>TLS/CMK no desenho cloud</td></tr>
+            <tr><td><strong>Retenção</strong></td><td>Quanto tempo o dado vive</td><td>Kafka curto · lake com política · purge</td></tr>
+            <tr><td><strong>Direito ao esquecimento</strong></td><td>Apagar/anonimizar sob demanda</td><td>Job de purge lake + perfil — não só Mongo</td></tr>
+            <tr><td><strong>Governança por camada</strong></td><td>Quem lê o quê</td><td>Bronze governada · Gold sem PII</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><strong>Kafka × Gold (decore):</strong></p>
+        <ul style="margin:0.2rem 0 0;">
+          <li><strong>Kafka (fato online):</strong> pode ter identificador mínimo (CPF ou token + <strong>só last4</strong>). Retenção <em>curta</em>. PAN completo <strong>nunca</strong>.</li>
+          <li><strong>Gold (negócio/BI):</strong> <strong>sem PII</strong> — agregado (fraude × categoria × dia). Analista não precisa de CPF.</li>
+          <li><strong>Bronze:</strong> landing bruta, governada, acesso restrito (engenharia/auditoria).</li>
+        </ul>
+      </div>
+
+      <h3 id="defesa-arq">Slide 11 — Arquitetura de dados</h3>
+      <div class="demo">
+        <pre>curl -s http://localhost:8080/api/v1/data-quality/report | python3 -m json.tool
+ls data/lake/bronze data/lake/silver data/lake/gold</pre>
+        <ul>
+          <li>Abrir <code>governanca.yaml</code> · notebook <code>01_dataprep_dq.py</code></li>
+          <li>Relacionar: Gold (treino/BI) × Mongo <code>user_profiles</code> (serving do <code>/analyze</code>)</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Três ideias — DECORE (não misture)</strong>
+        <table>
+          <thead><tr><th>Peça</th><th>Pergunta que responde</th><th>Consumidor</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Medallion</strong></td><td>Como o dado <em>ganha qualidade</em> no lake?</td><td>Engenharia / ML / reprocesso</td></tr>
+            <tr><td><strong>Kimball</strong></td><td>Como o negócio <em>consulta</em> (fato × dimensão)?</td><td>BI / Synapse / Redshift</td></tr>
+            <tr><td><strong>Perfil / features (Mongo)</strong></td><td>Como o online decide em <em>ms</em>?</td><td>API <code>/analyze</code></td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><em>Armadilha:</em> “Medallion substitui Kimball?” → <strong>Não.</strong> Um é pipeline/lake; outro é modelo dimensional de consumo.</p>
+      </div>
+
+      <div class="why">
+        <strong>Medallion em 1 linha cada</strong>
+        <ul>
+          <li><strong>Bronze</strong> — landing bruta, intacta (auditoria / replay / reprocesso)</li>
+          <li><strong>Silver</strong> — limpo, tipado, DQ passou</li>
+          <li><strong>Gold</strong> — pronto para ML/BI (features, agregados) — <strong>sem PII</strong> para negócio</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Gold × Mongo × Kafka (não confundir destino)</strong>
+        <table>
+          <thead><tr><th></th><th>Papel</th><th>Latência</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Gold</strong></td><td>Histórico / treino / BI</td><td>Batch</td></tr>
+            <tr><td><strong>Mongo user_profiles</strong></td><td>Feature de <em>serving</em> online</td><td>ms</td></tr>
+            <tr><td><strong>Kafka</strong></td><td>Fato recente + replay curto</td><td>Near real-time</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.35rem 0 0;"><em>Frase:</em> “Um histórico, dois destinos: Gold alimenta retreino; Mongo alimenta o <code>/analyze</code>.”</p>
+      </div>
+
+      <div class="why">
+        <strong>DQ / governança</strong>
+        <ul>
+          <li>Qualidade é <strong>regra</strong> (<code>governanca.yaml</code> + expectativas no notebook), não “esperança no job”.</li>
+          <li>Demo: <code>GET /data-quality/report</code></li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Mapa — o que é “arquitetura de dados”? (não misture as camadas)</strong>
+        <p style="margin:0.35rem 0 0;">São <strong>perguntas diferentes</strong>. Todas são arquitetura — mas de <em>camadas</em> distintas:</p>
+        <table>
+          <thead><tr><th>Pergunta</th><th>Família</th><th>No DataMaster</th></tr></thead>
+          <tbody>
+            <tr><td>Como o dado <strong>entra e processa</strong> no tempo?</td><td><strong>Lambda</strong> / Kappa</td><td>Lambda: speed (API+Kafka) + batch (Spark/lake)</td></tr>
+            <tr><td>Como o dado <strong>ganha qualidade</strong> no lake?</td><td><strong>Medallion</strong></td><td>Bronze → Silver → Gold</td></tr>
+            <tr><td>Como o BI <strong>modela</strong> para consulta?</td><td><strong>Kimball</strong> (estrela) / Data Vault</td><td>Narrativa DW (Synapse/Redshift)</td></tr>
+            <tr><td>Como o online <strong>serve</strong> feature?</td><td>Feature store / perfil</td><td>Mongo <code>user_profiles</code></td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><strong>Lambda e streaming são arquitetura?</strong> <strong>Sim</strong> — de <em>ingestão/processamento</em> (padrão de pipeline). Medallion é arquitetura de <em>organização do lake</em>. Kimball é de <em>modelo analítico</em>. Não são rivais: <strong>se complementam</strong>.</p>
+        <p style="margin:0.35rem 0 0;"><em>Fala:</em> “Lambda responde latência×histórico. Medallion responde qualidade no lake. Kimball responde como o negócio consulta. Streaming sozinho (Kappa) é outra opção de pipeline — eu escolhi Lambda.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Por que Medallion (e não só X)?</strong>
+        <table>
+          <thead><tr><th>Alternativa</th><th>Quando brilha</th><th>Por que não só ela aqui</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Só pasta / wide table</strong></td><td>POC rápido</td><td>Sem reprocesso limpo; qualidade vira caos</td></tr>
+            <tr><td><strong>Data Vault</strong></td><td>Auditoria/histórico de mudança forte</td><td>Mais complexo p/ BI ad hoc e antifraude</td></tr>
+            <tr><td><strong>Só Kimball no DW</strong></td><td>BI clássico</td><td>Não resolve landing bruta nem feature online</td></tr>
+            <tr><td><strong>Kappa (só stream)</strong></td><td>Tudo via replay do log</td><td>Features históricas e DQ pesado ficam caros</td></tr>
+            <tr><td><strong>Medallion</strong></td><td>Lake + ML + reprocesso + camadas de qualidade</td><td><strong>Escolhi</strong>: Bronze intacta, Silver confiável, Gold pronta — encaixa Lambda + serving</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.35rem 0 0;"><em>Por quê Medallion:</em> preciso de <strong>landing imutável</strong> (auditoria/replay), <strong>DQ progressivo</strong> e <strong>saída pronta</strong> para ML/BI sem misturar com o serving em ms.</p>
+      </div>
+
+
+      <div class="why">
+        <strong>Defesa rápida</strong>
+        <table>
+          <thead><tr><th>Perguntaram</th><th>Diga</th></tr></thead>
+          <tbody>
+            <tr><td>Medallion = Kimball?</td><td>Não — lake/pipeline ≠ estrela dimensional</td></tr>
+            <tr><td>Por que não só wide table?</td><td>POC rápido; vira caos de qualidade e reprocesso</td></tr>
+            <tr><td>Data Vault?</td><td>Auditoria forte; mais complexo p/ BI ad hoc — overkill aqui</td></tr>
+            <tr><td>Feature store Feast?</td><td>Produção ML madura; Mongo resolve o caso de perfil online</td></tr>
+            <tr><td>anomaly_score_boost?</td><td>Desvio vs perfil histórico materializado no batch</td></tr>
+            <tr><td>Onde está o fato/dimensão?</td><td>Narrativa DW (Synapse/Redshift); na mesa mostro Gold + schema de referência</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="defesa-escala">Slide 12 — Escalabilidade</h3>
+      <div class="demo">
+        <ul>
+          <li>Batch API (T7) · <code>GET /model/metrics</code> · <code>docker compose ps</code></li>
+          <li><strong>10M = meta do desenho</strong> — não invente load test na mesa</li>
+        </ul>
+        <pre>curl -s http://localhost:8080/api/v1/model/metrics | python3 -m json.tool</pre>
+      </div>
+
+      <div class="why">
+        <strong>Postura honesta (se perguntarem “provou 10M?”)</strong>
+        <p style="margin:0.35rem 0 0;"><em>“Não. Dez milhões/dia é <strong>capacidade-alvo do desenho</strong>. Na mesa mostro o caminho e <strong>onde puxo a alavanca</strong> em cada camada — não um load test de produção.”</em></p>
+      </div>
+
+      <div class="why">
+        <strong>Alavancas por camada — DECORE</strong>
+        <table>
+          <thead><tr><th>Camada</th><th>Alavanca</th><th>Cloud</th></tr></thead>
+          <tbody>
+            <tr><td>Stream (Kafka/EH)</td><td><strong>Partições</strong> + consumer groups</td><td>TU Event Hubs · shards Kinesis</td></tr>
+            <tr><td>Batch (Spark)</td><td><strong>Workers</strong> / cluster</td><td>Databricks · EMR</td></tr>
+            <tr><td>Serving (Mongo)</td><td>Índices · shard · RU/WCU</td><td>Cosmos RU · DynamoDB</td></tr>
+            <tr><td>API</td><td><strong>Réplicas</strong> horizontais (stateless)</td><td>AKS HPA · Container Apps · ECS</td></tr>
+            <tr><td>Cache</td><td>Redis hot keys</td><td>Cache for Redis · ElastiCache</td></tr>
+            <tr><td>Lake</td><td>Partição por <strong>data/canal</strong></td><td>ADLS · S3</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.4rem 0 0;"><em>Mantra:</em> “Réplica sem <strong>partição/chave certa</strong> não remove gargalo.”</p>
+      </div>
+
+      <div class="why">
+        <strong>Por quê escalar por camada (e não “só subir a VM”)</strong>
+        <ul>
+          <li><strong>Vertical</strong> (máquina maior) — limite rápido, ponto único.</li>
+          <li><strong>Horizontal</strong> — mais réplicas/partições; precisa API <em>stateless</em> + chave de partição boa.</li>
+          <li><strong>Separar batch do online</strong> — job Spark não pode competir com o path &lt;2s.</li>
+          <li><strong>FinOps</strong> — custo por 1M tx; escala sem controle quebra o negócio.</li>
+        </ul>
+      </div>
+
+      <div class="why">
+        <strong>Armadilhas</strong>
+        <table>
+          <thead><tr><th>Erro</th><th>Efeito</th></tr></thead>
+          <tbody>
+            <tr><td>Mais partições, chave ruim</td><td><strong>Hot partition</strong> (um user_id quente)</td></tr>
+            <tr><td>Cache sem invalidação</td><td>Latência boa, perfil <em>stale</em></td></tr>
+            <tr><td>Só vertical</td><td>Teto e SPOF</td></tr>
+            <tr><td>Batch no mesmo path do score</td><td>Estoura SLO &lt;2s</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:0.35rem 0 0;"><strong>Gargalos típicos:</strong> hot key no perfil · consumer lag · I/O do lake mal particionado.</p>
+      </div>
+
+      <div class="why">
+        <strong>Fala (~25 s)</strong>
+        <p style="margin:0.35rem 0 0;"><em>“Escalo por camada: partições no stream, workers no Spark, RU no serving, réplicas na API. A meta de dez milhões/dia é do desenho — na mesa mostro o caminho e onde puxaria a alavanca. Sem particionamento certo, réplica a mais não resolve.”</em></p>
+      </div>
+
+      <div class="why">
+        <strong>Defesa rápida</strong>
+        <table>
+          <thead><tr><th>Perguntaram</th><th>Diga</th></tr></thead>
+          <tbody>
+            <tr><td>Provou 10M?</td><td>Não — meta de arquitetura + pontos de escala</td></tr>
+            <tr><td>Redis no scoring?</td><td>Na stack p/ cache; path crítico demo = API + Mongo</td></tr>
+            <tr><td>Só subir máquina?</td><td>Vertical tem teto; preciso horizontal + partição</td></tr>
+            <tr><td>Hot partition?</td><td>Chave de partição ruim concentra carga num shard</td></tr>
+            <tr><td>Como sabe que precisa escalar?</td><td>SLI: latência /analyze, lag do consumer, RU/CPU — obs do tópico 4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="t13">
+      <h2>Slide 13 — Trilha T0–T12 (quando for a demo oficial)</h2>
+      <table>
+        <thead><tr><th>Step</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td>T0</td><td><code>docker compose ps</code> · <code>bash scripts/status-stack.sh</code></td></tr>
+          <tr><td>T1</td><td><code>curl -s localhost:8080/health | python3 -m json.tool</code></td></tr>
+          <tr><td>T2</td><td>Swagger :8080/swagger-ui.html</td></tr>
+          <tr><td>T3</td><td><code>curl …/batch/profile-stats</code></td></tr>
+          <tr><td>T4</td><td>Dashboard :8501 — fraudes · liberar</td></tr>
+          <tr><td>T4b</td><td>Aba LGPD</td></tr>
+          <tr><td>T5–T6</td><td>Analyze normal + fraude (abaixo)</td></tr>
+          <tr><td>T7</td><td>Console lote ou POST batch</td></tr>
+          <tr><td>T4c</td><td>RabbitMQ :15672 · logs email-worker</td></tr>
+          <tr><td>T8</td><td>Consumer <code>transaction-analyzed</code> · dashboard Kafka · Jupyter dia</td></tr>
+          <tr><td>T9</td><td>Jupyter · Spark · <code>ls data/lake/*</code></td></tr>
+          <tr><td>T11</td><td>Prometheus · Grafana</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="cmds">
+      <h2>Comandos copiar-colar</h2>
+      <pre># Perfis Mongo
+curl -s http://localhost:8080/api/v1/batch/profile-stats | python3 -m json.tool
+
+# Analyze normal
+curl -s -X POST http://localhost:8080/api/v1/transactions/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"amount":150,"merchant_category":"Alimentação","user_country":"BR","merchant_country":"BR","payment_method":"CREDIT_CARD","hour":14,"user_id":"user_1001"}' | python3 -m json.tool
+
+# Analyze fraude (limiar 0,74)
+curl -s -X POST http://localhost:8080/api/v1/transactions/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"amount":50000,"merchant_category":"Viagem","user_country":"BR","merchant_country":"US","payment_method":"CREDIT_CARD","hour":3,"is_weekend":1,"is_international":1,"user_id":"user_1001"}' | python3 -m json.tool
+
+# Eventos do dia (após analyze)
+curl -s 'http://localhost:8080/api/v1/events/analyzed?date=today' | python3 -m json.tool | head -40
+
+# Kafka — fato publicado pela API
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
+  --topic transaction-analyzed --from-beginning --max-messages 3</pre>
+      <h3>URLs</h3>
+      <ul>
+        <li>Banca: http://localhost:8880/banca.html</li>
+        <li>Cola: http://localhost:8880/cola.html</li>
+        <li>Console: http://localhost:3333 · Dashboard: http://localhost:8501 (aba <strong>Kafka / eventos do dia</strong>)</li>
+        <li>Swagger: http://localhost:8080/swagger-ui.html · Rabbit: http://localhost:15672</li>
+        <li>Jupyter: http://localhost:8888/?token=datamaster → <code>02_kafka_consultas_dia.ipynb</code></li>
+      </ul>
+      <p style="margin:0.6rem 0 0;color:var(--muted);font-size:0.82rem;">
+        Plano B: API cai → 1 curl analyze · Spark cai → <code>ls data/lake/</code> · Sem tempo → cortar T8–T10.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+# API Java — demo local com MongoDB (perfis batch) + scoring online
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://admin:admin123@mongodb:27017/fraud_detection?authSource=admin}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:datamaster}
+    password: ${RABBITMQ_PASSWORD:datamaster}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: "1"
+      properties:
+        spring.json.add.type.headers: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+fraud:
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: https://api.deepseek.com
+    model: deepseek-chat
+  email:
+    enabled: ${FRAUD_EMAIL_ENABLED:true}
+  kafka:
+    enabled: ${FRAUD_KAFKA_ENABLED:true}
+    topic: ${FRAUD_KAFKA_TOPIC:transaction-analyzed}

@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Imagens custom: tag substituida no deploy (scripts/deploy-kubernetes-server.sh).
+images:
+  - name: docker.io/library/datamaster-api
+    newName: docker.io/library/datamaster-api
+    newTag: local
+  - name: docker.io/library/datamaster-dashboard
+    newName: docker.io/library/datamaster-dashboard
+    newTag: local
+  - name: docker.io/library/datamaster-portal
+    newName: docker.io/library/datamaster-portal
+    newTag: local
+  - name: docker.io/library/datamaster-data-console
+    newName: docker.io/library/datamaster-data-console
+    newTag: local
+  - name: docker.io/library/datamaster-email-worker
+    newName: docker.io/library/datamaster-email-worker
+    newTag: local

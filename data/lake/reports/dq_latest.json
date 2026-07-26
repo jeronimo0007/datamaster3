@@ -1,0 +1,9 @@
+{
+  "validation_time": "2026-07-26T12:51:25.243193",
+  "total_records": 800,
+  "null_amount": 0,
+  "duplicate_ids": 0,
+  "fraud_labeled": 41,
+  "fraud_rate": 0.0512,
+  "success": true
+}
