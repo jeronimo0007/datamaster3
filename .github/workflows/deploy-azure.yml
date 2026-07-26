@@ -73,6 +73,27 @@ jobs:
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Register required resource providers
+        run: |
+          set -euo pipefail
+          for ns in \
+            Microsoft.App \
+            Microsoft.ContainerRegistry \
+            Microsoft.OperationalInsights \
+            Microsoft.EventHub \
+            Microsoft.DocumentDB \
+            Microsoft.DBforPostgreSQL \
+            Microsoft.KeyVault \
+            Microsoft.Storage \
+            Microsoft.Insights \
+            Microsoft.Synapse \
+            Microsoft.Databricks \
+            Microsoft.MachineLearningServices
+          do
+            echo "Registering $ns..."
+            az provider register -n "$ns" --wait
+          done
+
       - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init

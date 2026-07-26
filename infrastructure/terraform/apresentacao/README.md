@@ -31,10 +31,41 @@ Por padrão (`enable_analytics_stack = true`) entram **Databricks, Synapse e Azu
 
 ```bash
 az login
+
+# Providers usados por este stack (obrigatório na subscription)
 az provider register -n Microsoft.App --wait
 az provider register -n Microsoft.ContainerRegistry --wait
 az provider register -n Microsoft.OperationalInsights --wait
 az provider register -n Microsoft.EventHub --wait
+az provider register -n Microsoft.DocumentDB --wait
+az provider register -n Microsoft.DBforPostgreSQL --wait
+az provider register -n Microsoft.KeyVault --wait
+az provider register -n Microsoft.Storage --wait
+az provider register -n Microsoft.Insights --wait
+az provider register -n Microsoft.Synapse --wait
+az provider register -n Microsoft.Databricks --wait
+az provider register -n Microsoft.MachineLearningServices --wait
+```
+
+### GitHub Actions (OIDC)
+
+O app registration precisa de **Contributor** e **User Access Administrator** na subscription
+(User Access Administrator é necessário para o Terraform conceder `Storage Blob Data Contributor` à identidade do Synapse):
+
+```bash
+APP_ID="<AZURE_CLIENT_ID>"
+SUB_ID="<AZURE_SUBSCRIPTION_ID>"
+az role assignment create --assignee "$APP_ID" --role "Contributor" --scope "/subscriptions/$SUB_ID"
+az role assignment create --assignee "$APP_ID" --role "User Access Administrator" --scope "/subscriptions/$SUB_ID"
+```
+
+Secrets no repo: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TF_VAR_db_admin_password`.
+
+Se um `apply` anterior falhou no meio, apague o resource group órfão antes de rodar de novo
+(o state do Actions é efêmero sem backend remoto):
+
+```bash
+az group delete -n rg-fraud-apresentacao-5fa704c3 --yes --no-wait
 ```
 
 ## Apply
