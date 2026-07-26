@@ -58,8 +58,9 @@ variable "synapse_sql_admin_login" {
 }
 
 variable "databricks_sku" {
-  type    = string
-  default = "standard"
+  type        = string
+  default     = "premium"
+  description = "SKU do Databricks (standard foi descontinuado; use premium)."
 }
 
 variable "api_container_image" {
