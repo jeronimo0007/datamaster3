@@ -30,8 +30,6 @@ jobs:
     env:
       TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_db_admin_password }}
-      # Secrets opcionais sobrescrevem; no dispatch manual usa o input.
-      TF_VAR_enable_analytics_stack: ${{ secrets.TF_VAR_enable_analytics_stack || github.event.inputs.enable_analytics_stack || 'true' }}
       TF_VAR_analytics_high_cost_acknowledged: "true"
     steps:
       - uses: actions/checkout@v4
@@ -40,10 +38,6 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          for s in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID TF_VAR_db_admin_password; do
-            # valores injetados via env do job / login — senha checada aqui
-            :
-          done
           if [ -z "${TF_VAR_db_admin_password}" ]; then
             echo "::error::Defina o secret TF_VAR_db_admin_password (senha forte do Postgres)."
             missing=1
@@ -54,6 +48,16 @@ jobs:
           fi
           if [ "$missing" -ne 0 ]; then
             exit 1
+          fi
+
+      - name: Definir stack analitica
+        run: |
+          if [ -n "${{ secrets.TF_VAR_enable_analytics_stack }}" ]; then
+            echo "TF_VAR_enable_analytics_stack=${{ secrets.TF_VAR_enable_analytics_stack }}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TF_VAR_enable_analytics_stack=${{ github.event.inputs.enable_analytics_stack }}" >> "$GITHUB_ENV"
+          else
+            echo "TF_VAR_enable_analytics_stack=true" >> "$GITHUB_ENV"
           fi
 
       - name: Azure Login (OIDC)
