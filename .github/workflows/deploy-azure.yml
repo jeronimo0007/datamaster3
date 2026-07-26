@@ -1,4 +1,6 @@
 # Terraform Azure — somente merge/push na branch `azure`.
+# Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_db_admin_password
+# Opcional: TF_VAR_enable_analytics_stack=false para omitir Databricks/Synapse/AML (mais barato).
 name: Deploy → Azure (Terraform)
 
 on:
@@ -10,6 +12,10 @@ on:
         description: "Diretorio Terraform"
         required: true
         default: infrastructure/terraform/apresentacao
+      enable_analytics_stack:
+        description: "Databricks + Synapse + AML (custo alto)"
+        type: boolean
+        default: true
 
 concurrency:
   group: deploy-azure
@@ -23,8 +29,32 @@ jobs:
       contents: read
     env:
       TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
+      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_db_admin_password }}
+      # Secrets opcionais sobrescrevem; no dispatch manual usa o input.
+      TF_VAR_enable_analytics_stack: ${{ secrets.TF_VAR_enable_analytics_stack || github.event.inputs.enable_analytics_stack || 'true' }}
+      TF_VAR_analytics_high_cost_acknowledged: "true"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validar secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          for s in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID TF_VAR_db_admin_password; do
+            # valores injetados via env do job / login — senha checada aqui
+            :
+          done
+          if [ -z "${TF_VAR_db_admin_password}" ]; then
+            echo "::error::Defina o secret TF_VAR_db_admin_password (senha forte do Postgres)."
+            missing=1
+          fi
+          if [ -z "${{ secrets.AZURE_CLIENT_ID }}" ] || [ -z "${{ secrets.AZURE_TENANT_ID }}" ] || [ -z "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ]; then
+            echo "::error::Defina AZURE_CLIENT_ID, AZURE_TENANT_ID e AZURE_SUBSCRIPTION_ID (OIDC)."
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2

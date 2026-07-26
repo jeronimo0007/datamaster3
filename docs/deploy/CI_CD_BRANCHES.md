@@ -43,7 +43,7 @@ Deploy manual: **Actions** → escolha o workflow → **Run workflow** (na branc
 
 **VPS:** `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET` (Tailscale — ver [GITHUB_ACTIONS_TAILSCALE.md](GITHUB_ACTIONS_TAILSCALE.md)), `K8S_SSH_HOST`, `K8S_SSH_USER`, `K8S_SSH_KEY`, `K8S_DEPLOY_DIR`
 
-**Azure:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+**Azure:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TF_VAR_db_admin_password` (senha Postgres). Opcional: `TF_VAR_enable_analytics_stack`=`false` para omitir Databricks/Synapse/AML. Credencial federada OIDC na branch **`azure`**.
 
 **AWS:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_LAKE_BUCKET_NAME` (se não usar `terraform.tfvars` na branch)
 
