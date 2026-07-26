@@ -31,6 +31,10 @@ jobs:
       TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_db_admin_password }}
       TF_VAR_analytics_high_cost_acknowledged: "true"
+      # Precisam ser Repository secrets (Settings → Secrets → Actions), NAO Environment do VPS.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,16 +43,18 @@ jobs:
           set -euo pipefail
           missing=0
           if [ -z "${TF_VAR_db_admin_password}" ]; then
-            echo "::error::Defina o secret TF_VAR_db_admin_password (senha forte do Postgres)."
+            echo "::error::Defina o Repository secret TF_VAR_db_admin_password."
             missing=1
           fi
-          if [ -z "${{ secrets.AZURE_CLIENT_ID }}" ] || [ -z "${{ secrets.AZURE_TENANT_ID }}" ] || [ -z "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ]; then
-            echo "::error::Defina AZURE_CLIENT_ID, AZURE_TENANT_ID e AZURE_SUBSCRIPTION_ID (OIDC)."
+          if [ -z "${AZURE_CLIENT_ID}" ] || [ -z "${AZURE_TENANT_ID}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
+            echo "::error::Defina AZURE_CLIENT_ID, AZURE_TENANT_ID e AZURE_SUBSCRIPTION_ID como Repository secrets (nao no Environment TAILSCALE_AUTHKEY)."
+            echo "GitHub → Settings → Secrets and variables → Actions → Repository secrets"
             missing=1
           fi
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
+          echo "Secrets OIDC e senha Postgres presentes."
 
       - name: Definir stack analitica
         run: |
@@ -63,9 +69,9 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - uses: hashicorp/setup-terraform@v3
 
