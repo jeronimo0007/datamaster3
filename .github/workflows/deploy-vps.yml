@@ -1,0 +1,118 @@
+# Deploy no servidor Kubernetes — branch `vps`.
+# Codigo no VPS: /home/servidor/kubernets/datamasterv2
+name: Deploy → VPS (Kubernetes)
+
+on:
+  push:
+    branches: [vps]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: TAILSCALE_AUTHKEY
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conectar Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          version: latest
+          # Sem "targets": ping obrigatorio ao host falha mesmo com SSH ok (ICMP/ACL/MagicDNS).
+
+      - name: Testar DNS do VPS (nao bloqueia deploy)
+        continue-on-error: true
+        run: |
+          HOST="${{ secrets.K8S_SSH_HOST }}"
+          tailscale status || true
+          getent hosts "${HOST}" || true
+          tailscale ping -c 2 "${HOST}" || true
+
+      - name: Deploy via SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.K8S_SSH_KEY }}
+          SSH_PASSWORD: ${{ secrets.K8S_SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.K8S_SSH_HOST }}
+          SSH_USER: ${{ secrets.K8S_SSH_USER }}
+          GIT_REF: vps
+          IMAGE_TAG: ${{ github.sha }}
+          DEPLOY_DIR: /home/servidor/kubernets/datamasterv2
+        run: |
+          set -euo pipefail
+          if [ -z "${SSH_HOST}" ] || [ -z "${SSH_USER}" ]; then
+            echo "::error::Defina K8S_SSH_HOST e K8S_SSH_USER no Environment TAILSCALE_AUTHKEY"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22)
+
+          USE_KEY=0
+          if [ -n "${SSH_PRIVATE_KEY}" ] && echo "${SSH_PRIVATE_KEY}" | grep -qE 'BEGIN (OPENSSH |RSA )?PRIVATE KEY'; then
+            printf '%s\n' "${SSH_PRIVATE_KEY}" > ~/.ssh/id_deploy
+            chmod 600 ~/.ssh/id_deploy
+            SSH_OPTS+=(-i ~/.ssh/id_deploy -o IdentitiesOnly=yes)
+            USE_KEY=1
+            echo "SSH: usando chave privada (K8S_SSH_KEY)"
+          elif [ -n "${SSH_PASSWORD}" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq sshpass
+            echo "SSH: usando senha (K8S_SSH_PASSWORD)"
+          else
+            echo "::error::Configure no Environment TAILSCALE_AUTHKEY:"
+            echo "  - K8S_SSH_KEY = chave PRIVADA completa (-----BEGIN ... PRIVATE KEY-----)"
+            echo "  - OU K8S_SSH_PASSWORD = senha do usuario ${SSH_USER}"
+            exit 1
+          fi
+
+          run_remote() {
+            ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" \
+              "export DEPLOY_DIR='${DEPLOY_DIR}' GIT_REF='${GIT_REF}' IMAGE_TAG='${IMAGE_TAG}'; bash -s" << 'REMOTE'
+          set -euo pipefail
+          if [[ ! -x "${DEPLOY_DIR}/scripts/deploy-kubernetes-server.sh" ]]; then
+            echo "Script nao encontrado em ${DEPLOY_DIR}"
+            exit 1
+          fi
+          bash "${DEPLOY_DIR}/scripts/deploy-kubernetes-server.sh"
+          REMOTE
+          }
+
+          run_remote_pass() {
+            sshpass -p "${SSH_PASSWORD}" ssh "${SSH_OPTS[@]}" "${SSH_USER}@${SSH_HOST}" \
+              "export DEPLOY_DIR='${DEPLOY_DIR}' GIT_REF='${GIT_REF}' IMAGE_TAG='${IMAGE_TAG}'; bash -s" << 'REMOTE'
+          set -euo pipefail
+          if [[ ! -x "${DEPLOY_DIR}/scripts/deploy-kubernetes-server.sh" ]]; then
+            echo "Script nao encontrado em ${DEPLOY_DIR}"
+            exit 1
+          fi
+          bash "${DEPLOY_DIR}/scripts/deploy-kubernetes-server.sh"
+          REMOTE
+          }
+
+          if [ "${USE_KEY}" -eq 1 ]; then
+            if run_remote; then
+              echo "SSH com chave OK"
+            elif [ -n "${SSH_PASSWORD}" ]; then
+              echo "::warning::Chave rejeitada no servidor; tentando K8S_SSH_PASSWORD..."
+              sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+              SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22)
+              run_remote_pass
+            else
+              echo "::error::Permission denied com K8S_SSH_KEY."
+              echo "No VPS (como usuario ${SSH_USER}):"
+              echo "  cat ~/.ssh/github-actions.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+              echo "Ou crie secret K8S_SSH_PASSWORD no Environment."
+              exit 1
+            fi
+          else
+            run_remote_pass
+          fi
+
+      - name: Resumo
+        run: echo "Deploy VPS concluido (commit ${{ github.sha }})"
