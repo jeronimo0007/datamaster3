@@ -47,6 +47,21 @@ resource "azurerm_databricks_workspace" "main" {
   tags = azurerm_resource_group.main.tags
 }
 
+# Azure ML nao aceita storage com HNS (ADLS). Conta dedicada sem hierarchical namespace.
+resource "azurerm_storage_account" "aml" {
+  count = var.enable_analytics_stack ? 1 : 0
+
+  name                     = substr("${local.alnum}aml${random_id.analytics_suffix[0].hex}", 0, 24)
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  account_kind             = "StorageV2"
+  is_hns_enabled           = false
+
+  tags = azurerm_resource_group.main.tags
+}
+
 resource "azurerm_machine_learning_workspace" "main" {
   count = var.enable_analytics_stack ? 1 : 0
 
@@ -55,7 +70,7 @@ resource "azurerm_machine_learning_workspace" "main" {
   resource_group_name     = azurerm_resource_group.main.name
   application_insights_id = azurerm_application_insights.main.id
   key_vault_id            = azurerm_key_vault.main.id
-  storage_account_id      = azurerm_storage_account.datalake.id
+  storage_account_id      = azurerm_storage_account.aml[0].id
 
   identity {
     type = "SystemAssigned"
