@@ -1,6 +1,8 @@
-# Terraform Azure — somente merge/push na branch `azure`.
-# Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_db_admin_password
-# Opcional: TF_VAR_enable_analytics_stack=false para omitir Databricks/Synapse/AML (mais barato).
+# Deploy Azure completo para apresentação (branch `azure`).
+# Secrets (Repository): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_db_admin_password
+# Opcional: TF_VAR_enable_analytics_stack=false | TF_VAR_name_suffix=banca2
+#
+# Fluxo: bootstrap state → terraform apply → build/push API Java → atualiza Container App → imprime URLs.
 name: Deploy → Azure (Terraform)
 
 on:
@@ -8,6 +10,11 @@ on:
     branches: [azure]
   workflow_dispatch:
     inputs:
+      action:
+        description: "apply = sobe/atualiza | destroy = apaga a stack da apresentação"
+        type: choice
+        options: [apply, destroy]
+        default: apply
       terraform_dir:
         description: "Diretorio Terraform"
         required: true
@@ -16,22 +23,33 @@ on:
         description: "Databricks + Synapse + AML (custo alto)"
         type: boolean
         default: true
+      name_suffix:
+        description: "Sufixo estável dos nomes (padrao: banca)"
+        required: true
+        default: banca
 
 concurrency:
   group: deploy-azure
   cancel-in-progress: false
 
+env:
+  TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
+  TF_IN_AUTOMATION: "true"
+  TFSTATE_RG: rg-datamaster3-tfstate
+  TFSTATE_SA: datamaster3tfstate
+  TFSTATE_CONTAINER: tfstate
+  TFSTATE_KEY: apresentacao.tfstate
+
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     permissions:
       id-token: write
       contents: read
     env:
-      TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
       TF_VAR_db_admin_password: ${{ secrets.TF_VAR_db_admin_password }}
       TF_VAR_analytics_high_cost_acknowledged: "true"
-      # Precisam ser Repository secrets (Settings → Secrets → Actions), NAO Environment do VPS.
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -47,16 +65,14 @@ jobs:
             missing=1
           fi
           if [ -z "${AZURE_CLIENT_ID}" ] || [ -z "${AZURE_TENANT_ID}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
-            echo "::error::Defina AZURE_CLIENT_ID, AZURE_TENANT_ID e AZURE_SUBSCRIPTION_ID como Repository secrets (nao no Environment TAILSCALE_AUTHKEY)."
-            echo "GitHub → Settings → Secrets and variables → Actions → Repository secrets"
+            echo "::error::Defina AZURE_CLIENT_ID, AZURE_TENANT_ID e AZURE_SUBSCRIPTION_ID como Repository secrets."
             missing=1
           fi
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
-          echo "Secrets OIDC e senha Postgres presentes."
 
-      - name: Definir stack analitica
+      - name: Definir variaveis de stack
         run: |
           if [ -n "${{ secrets.TF_VAR_enable_analytics_stack }}" ]; then
             echo "TF_VAR_enable_analytics_stack=${{ secrets.TF_VAR_enable_analytics_stack }}" >> "$GITHUB_ENV"
@@ -65,6 +81,17 @@ jobs:
           else
             echo "TF_VAR_enable_analytics_stack=true" >> "$GITHUB_ENV"
           fi
+
+          if [ -n "${{ secrets.TF_VAR_name_suffix }}" ]; then
+            echo "TF_VAR_name_suffix=${{ secrets.TF_VAR_name_suffix }}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TF_VAR_name_suffix=${{ github.event.inputs.name_suffix }}" >> "$GITHUB_ENV"
+          else
+            echo "TF_VAR_name_suffix=banca" >> "$GITHUB_ENV"
+          fi
+
+          ACTION="${{ github.event.inputs.action || 'apply' }}"
+          echo "DEPLOY_ACTION=$ACTION" >> "$GITHUB_ENV"
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -90,20 +117,157 @@ jobs:
             Microsoft.Databricks \
             Microsoft.MachineLearningServices
           do
-            echo "Registering $ns..."
-            az provider register -n "$ns" --wait
+            state="$(az provider show -n "$ns" --query registrationState -o tsv 2>/dev/null || echo Unknown)"
+            if [ "$state" = "Registered" ]; then
+              echo "OK $ns"
+            else
+              echo "Registering $ns (state=$state)..."
+              az provider register -n "$ns" --wait
+            fi
           done
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Bootstrap Terraform remote state
+        run: |
+          set -euo pipefail
+          LOC=brazilsouth
+          az group create -n "$TFSTATE_RG" -l "$LOC" -o none
+          if ! az storage account show -g "$TFSTATE_RG" -n "$TFSTATE_SA" &>/dev/null; then
+            az storage account create \
+              -g "$TFSTATE_RG" -n "$TFSTATE_SA" -l "$LOC" \
+              --sku Standard_LRS --kind StorageV2 -o none
+          fi
+          az storage container create \
+            --name "$TFSTATE_CONTAINER" \
+            --account-name "$TFSTATE_SA" \
+            --auth-mode login \
+            -o none 2>/dev/null \
+          || az storage container create \
+            --name "$TFSTATE_CONTAINER" \
+            --account-name "$TFSTATE_SA" \
+            --account-key "$(az storage account keys list -g "$TFSTATE_RG" -n "$TFSTATE_SA" --query '[0].value' -o tsv)" \
+            -o none
 
-      - name: Terraform Init
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init (remote state)
         working-directory: ${{ env.TF_DIR }}
-        run: terraform init -input=false
+        run: |
+          terraform init -input=false \
+            -backend-config="resource_group_name=${TFSTATE_RG}" \
+            -backend-config="storage_account_name=${TFSTATE_SA}" \
+            -backend-config="container_name=${TFSTATE_CONTAINER}" \
+            -backend-config="key=${TFSTATE_KEY}"
+
+      - name: Terraform Destroy
+        if: env.DEPLOY_ACTION == 'destroy'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform destroy -input=false -auto-approve
 
       - name: Terraform Plan
+        if: env.DEPLOY_ACTION != 'destroy'
         working-directory: ${{ env.TF_DIR }}
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
+        if: env.DEPLOY_ACTION != 'destroy'
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Export outputs
+        if: env.DEPLOY_ACTION != 'destroy'
+        id: out
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          {
+            echo "rg=$(terraform output -raw resource_group_name)"
+            echo "acr=$(terraform output -raw container_registry_login_server)"
+            echo "app=$(terraform output -raw container_app_api_name)"
+            echo "fqdn=$(terraform output -raw container_app_api_fqdn)"
+            echo "api_url=$(terraform output -raw container_app_api_url)"
+            echo "databricks=$(terraform output -raw databricks_workspace_url || true)"
+            echo "synapse=$(terraform output -raw synapse_workspace_name || true)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push API Java
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          ACR="${{ steps.out.outputs.acr }}"
+          ACR_NAME="${ACR%%.*}"
+          az acr login --name "$ACR_NAME"
+          docker build -f api-java/Dockerfile \
+            -t "$ACR/fraud-api:apresentacao" \
+            -t "$ACR/fraud-api:latest" \
+            api-java
+          docker push "$ACR/fraud-api:apresentacao"
+          docker push "$ACR/fraud-api:latest"
+
+      - name: Update Container App with API image
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          RG="${{ steps.out.outputs.rg }}"
+          APP="${{ steps.out.outputs.app }}"
+          ACR="${{ steps.out.outputs.acr }}"
+          az containerapp update \
+            -g "$RG" -n "$APP" \
+            --image "$ACR/fraud-api:apresentacao" \
+            -o none
+          az containerapp ingress update \
+            -g "$RG" -n "$APP" \
+            --target-port 8080 \
+            -o none
+
+      - name: Wait for API health
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          URL="${{ steps.out.outputs.api_url }}/health"
+          echo "Aguardando $URL ..."
+          for i in $(seq 1 36); do
+            code="$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 15 "$URL" || true)"
+            if [ "$code" = "200" ]; then
+              echo "API healthy:"
+              cat /tmp/health.json
+              echo
+              exit 0
+            fi
+            echo "tentativa $i: HTTP $code — aguardando 10s"
+            sleep 10
+          done
+          echo "::warning::API ainda nao respondeu 200 em /health (pode estar aquecendo). URL: $URL"
+          exit 0
+
+      - name: Resumo da apresentacao
+        if: always()
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Deploy Azure — ${DEPLOY_ACTION}"
+            echo
+            if [ "${DEPLOY_ACTION}" = "destroy" ]; then
+              echo "Stack destruida (state remoto limpo)."
+              exit 0
+            fi
+            echo "| Item | Valor |"
+            echo "|------|-------|"
+            echo "| Resource Group | \`${{ steps.out.outputs.rg }}\` |"
+            echo "| API | ${{ steps.out.outputs.api_url }} |"
+            echo "| Health | ${{ steps.out.outputs.api_url }}/health |"
+            echo "| Analyze | \`POST ${{ steps.out.outputs.api_url }}/api/v1/transactions/analyze\` |"
+            echo "| ACR | \`${{ steps.out.outputs.acr }}\` |"
+            DBX="${{ steps.out.outputs.databricks }}"
+            SYN="${{ steps.out.outputs.synapse }}"
+            if [ -n "$DBX" ] && [ "$DBX" != "null" ]; then
+              echo "| Databricks | $DBX |"
+            fi
+            if [ -n "$SYN" ] && [ "$SYN" != "null" ]; then
+              echo "| Synapse | \`$SYN\` (Synapse Studio) |"
+            fi
+            echo
+            echo "Portal: Resource groups → \`${{ steps.out.outputs.rg }}\`"
+          } | tee -a "$GITHUB_STEP_SUMMARY"

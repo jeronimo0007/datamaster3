@@ -1,9 +1,11 @@
 # Copie para terraform.tfvars e preencha a senha do Postgres.
 # cp terraform.tfvars.example terraform.tfvars
+# No GitHub Actions a senha vem do secret TF_VAR_db_admin_password.
 
 location             = "brazilsouth"
 project_name         = "fraud-apresentacao"
 resource_group_name  = "rg-fraud-apresentacao"
+name_suffix          = "banca"
 
 db_admin_username = "fraudadmin"
 db_admin_password = "ALTERE_SENHA_FORTE_AQUI"
@@ -12,5 +14,5 @@ db_admin_password = "ALTERE_SENHA_FORTE_AQUI"
 enable_analytics_stack           = true
 analytics_high_cost_acknowledged = true
 
-# Após build e push da API Java:
-# api_container_image = "meuacr.azurecr.io/fraud-api:latest"
+# A imagem da API é publicada automaticamente pelo workflow (build api-java → ACR).
+# api_container_image = "meuacr.azurecr.io/fraud-api:apresentacao"
