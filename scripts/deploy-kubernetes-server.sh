@@ -76,10 +76,12 @@ fi
 if [[ -n "${SMTP_HOST:-}" ]]; then
   kubectl_cmd create secret generic datamaster-smtp-secrets -n datamaster \
     --from-literal=SMTP_HOST="${SMTP_HOST}" \
-    --from-literal=SMTP_PORT="${SMTP_PORT:-587}" \
+    --from-literal=SMTP_PORT="${SMTP_PORT:-465}" \
     --from-literal=SMTP_USER="${SMTP_USER:-}" \
     --from-literal=SMTP_PASSWORD="${SMTP_PASSWORD:-}" \
     --from-literal=SMTP_FROM="${SMTP_FROM:-noreply@datamaster.local}" \
+    --from-literal=SMTP_SSL="${SMTP_SSL:-true}" \
+    --from-literal=SMTP_STARTTLS="${SMTP_STARTTLS:-false}" \
     --from-literal=FRAUD_ALERT_TO="${FRAUD_ALERT_TO:-admin@example.com}" \
     --dry-run=client -o yaml | kubectl_cmd apply -f -
 fi

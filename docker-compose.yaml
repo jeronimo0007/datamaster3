@@ -336,6 +336,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM=${SMTP_FROM:-noreply@datamaster.local}
       - SMTP_STARTTLS=${SMTP_STARTTLS:-true}
+      - SMTP_SSL=${SMTP_SSL:-false}
       - FRAUD_ALERT_TO=${FRAUD_ALERT_TO:-admin@example.com}
     depends_on:
       rabbitmq:

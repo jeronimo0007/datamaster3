@@ -90,6 +90,18 @@ spec:
                   name: datamaster-smtp-secrets
                   key: SMTP_FROM
                   optional: true
+            - name: SMTP_SSL
+              valueFrom:
+                secretKeyRef:
+                  name: datamaster-smtp-secrets
+                  key: SMTP_SSL
+                  optional: true
+            - name: SMTP_STARTTLS
+              valueFrom:
+                secretKeyRef:
+                  name: datamaster-smtp-secrets
+                  key: SMTP_STARTTLS
+                  optional: true
             - name: FRAUD_ALERT_TO
               valueFrom:
                 secretKeyRef:

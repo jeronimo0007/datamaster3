@@ -24,6 +24,8 @@ spring:
           auth: true
           starttls:
             enable: ${SMTP_STARTTLS:true}
+          ssl:
+            enable: ${SMTP_SSL:false}
 
 fraud:
   email:

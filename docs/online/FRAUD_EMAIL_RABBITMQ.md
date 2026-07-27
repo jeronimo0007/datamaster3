@@ -35,6 +35,7 @@ Copie de [`.env.example`](../.env.example):
 | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` | Credenciais do broker |
 | `FRAUD_EMAIL_ENABLED` | `true` para publicar/consumir |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Servidor SMTP |
+| `SMTP_SSL` / `SMTP_STARTTLS` | Porta **465** → `SMTP_SSL=true` e `SMTP_STARTTLS=false`; porta **587** → o inverso |
 | `SMTP_FROM` | Remetente |
 | `FRAUD_ALERT_TO` | Destinatário do alerta |
 

@@ -53,11 +53,13 @@ docker logs fraud-email-worker --tail 40 -f
 No `.env`:
 
 ```env
-SMTP_HOST=smtp.exemplo.com
-SMTP_PORT=587
+SMTP_HOST=email-ssl.com.br
+SMTP_PORT=465
 SMTP_USER=...
 SMTP_PASSWORD=...
-SMTP_FROM=alertas@datamaster.local
+SMTP_FROM=...
+SMTP_SSL=true
+SMTP_STARTTLS=false
 FRAUD_ALERT_TO=seu@email.com
 FRAUD_EMAIL_ENABLED=true
 ```
