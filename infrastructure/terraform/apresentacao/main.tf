@@ -20,12 +20,8 @@ provider "azurerm" {
   }
 }
 
-resource "random_id" "suffix" {
-  byte_length = 4
-}
-
 locals {
-  suffix = random_id.suffix.hex
+  suffix = var.name_suffix
   alnum  = replace(var.project_name, "-", "")
 
   storage_account_name = coalesce(
@@ -41,6 +37,12 @@ locals {
   api_image = coalesce(
     var.api_container_image,
     "mcr.microsoft.com/k8se/quickstart:latest"
+  )
+  # Cosmos Mongo connection string precisa do database no path para o Spring Data.
+  mongodb_uri = replace(
+    azurerm_cosmosdb_account.mongo.primary_mongodb_connection_string,
+    "/?",
+    "/fraud_detection?"
   )
 }
 
@@ -164,6 +166,47 @@ resource "azurerm_cosmosdb_sql_container" "transactions" {
   throughput            = 400
 }
 
+# --- Cosmos DB Mongo API (perfil Spring local / user_profiles) ---
+resource "azurerm_cosmosdb_account" "mongo" {
+  name                = substr("${local.alnum}mongo${local.suffix}", 0, 44)
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  offer_type          = "Standard"
+  kind                = "MongoDB"
+
+  consistency_policy {
+    consistency_level = "Session"
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.main.location
+    failover_priority = 0
+  }
+
+  tags = azurerm_resource_group.main.tags
+}
+
+resource "azurerm_cosmosdb_mongo_database" "main" {
+  name                = "fraud_detection"
+  resource_group_name = azurerm_resource_group.main.name
+  account_name        = azurerm_cosmosdb_account.mongo.name
+}
+
+resource "azurerm_cosmosdb_mongo_collection" "user_profiles" {
+  name                = "user_profiles"
+  resource_group_name = azurerm_resource_group.main.name
+  account_name        = azurerm_cosmosdb_account.mongo.name
+  database_name       = azurerm_cosmosdb_mongo_database.main.name
+
+  shard_key = "_id"
+  throughput = 400
+
+  index {
+    keys   = ["_id"]
+    unique = true
+  }
+}
+
 # --- Key Vault ---
 resource "azurerm_key_vault" "main" {
   name                       = local.key_vault_name
@@ -262,6 +305,11 @@ resource "azurerm_container_app" "api" {
     value = azurerm_eventhub_authorization_rule.send_listen.primary_connection_string
   }
 
+  secret {
+    name  = "mongodb-uri"
+    value = local.mongodb_uri
+  }
+
   registry {
     server               = azurerm_container_registry.main.login_server
     username             = azurerm_container_registry.main.admin_username
@@ -285,6 +333,18 @@ resource "azurerm_container_app" "api" {
       env {
         name        = "EVENTHUB_CONNECTION_STRING"
         secret_name = "eventhub-conn"
+      }
+      env {
+        name        = "MONGODB_URI"
+        secret_name = "mongodb-uri"
+      }
+      env {
+        name  = "FRAUD_EMAIL_ENABLED"
+        value = "false"
+      }
+      env {
+        name  = "FRAUD_KAFKA_ENABLED"
+        value = "false"
       }
       env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"

@@ -1,9 +1,5 @@
 # Databricks, Synapse, Azure ML — ativo por padrão (enable_analytics_stack = true)
-
-resource "random_id" "analytics_suffix" {
-  count       = var.enable_analytics_stack ? 1 : 0
-  byte_length = 4
-}
+# Nomes usam o mesmo name_suffix estável da stack (ex.: banca).
 
 resource "random_password" "synapse_sql" {
   count   = var.enable_analytics_stack ? 1 : 0
@@ -14,7 +10,7 @@ resource "random_password" "synapse_sql" {
 resource "azurerm_synapse_workspace" "main" {
   count = var.enable_analytics_stack ? 1 : 0
 
-  name                                 = substr("${local.alnum}syn${random_id.analytics_suffix[0].hex}", 0, 50)
+  name                                 = substr("${local.alnum}syn${local.suffix}", 0, 50)
   resource_group_name                  = azurerm_resource_group.main.name
   location                             = azurerm_resource_group.main.location
   storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.gold.id
@@ -39,7 +35,7 @@ resource "azurerm_role_assignment" "synapse_storage" {
 resource "azurerm_databricks_workspace" "main" {
   count = var.enable_analytics_stack ? 1 : 0
 
-  name                = substr("${local.alnum}dbw${random_id.analytics_suffix[0].hex}", 0, 30)
+  name                = substr("${local.alnum}dbw${local.suffix}", 0, 30)
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   sku                 = var.databricks_sku
@@ -51,7 +47,7 @@ resource "azurerm_databricks_workspace" "main" {
 resource "azurerm_storage_account" "aml" {
   count = var.enable_analytics_stack ? 1 : 0
 
-  name                     = substr("${local.alnum}aml${random_id.analytics_suffix[0].hex}", 0, 24)
+  name                     = substr("${local.alnum}aml${local.suffix}", 0, 24)
   resource_group_name      = azurerm_resource_group.main.name
   location                 = azurerm_resource_group.main.location
   account_tier             = "Standard"
@@ -65,7 +61,7 @@ resource "azurerm_storage_account" "aml" {
 resource "azurerm_machine_learning_workspace" "main" {
   count = var.enable_analytics_stack ? 1 : 0
 
-  name                    = substr("${local.alnum}mlw${random_id.analytics_suffix[0].hex}", 0, 33)
+  name                    = substr("${local.alnum}mlw${local.suffix}", 0, 33)
   location                = azurerm_resource_group.main.location
   resource_group_name     = azurerm_resource_group.main.name
   application_insights_id = azurerm_application_insights.main.id

@@ -13,6 +13,12 @@ variable "project_name" {
   default = "fraud-apresentacao"
 }
 
+variable "name_suffix" {
+  type        = string
+  default     = "banca"
+  description = "Sufixo estável dos recursos (apresentação). Troque só se houver conflito de nome global após delete."
+}
+
 variable "storage_account_name" {
   type        = string
   description = "Único globalmente na Azure (3-24 chars, só minúsculas e números)"
@@ -64,7 +70,7 @@ variable "databricks_sku" {
 }
 
 variable "api_container_image" {
-  description = "Imagem da API Java no ACR (após docker push). null = quickstart até primeiro deploy."
+  description = "Imagem da API Java no ACR (após docker push). null = quickstart até o job de build."
   type        = string
   default     = null
 }
