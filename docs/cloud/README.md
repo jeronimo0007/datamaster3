@@ -1,13 +1,12 @@
 # Cloud (Azure e AWS)
 
-IaC, equivalência entre nuvens e tutoriais de deploy.
+IaC com a **mesma stack** do Docker local.
 
 | Documento | Conteúdo |
 |-----------|----------|
-| [cloud_comparison.md](cloud_comparison.md) | Azure ↔ AWS |
-| [TUTORIAL_AZURE_TERRAFORM_E_GITHUB_ACTIONS.md](TUTORIAL_AZURE_TERRAFORM_E_GITHUB_ACTIONS.md) | Terraform + Container Apps + Actions |
-| [TERRAFORM_BANCA_MINIMO.md](TERRAFORM_BANCA_MINIMO.md) | Legado — use `infrastructure/terraform/apresentacao/` |
-
-Terraform no repo: `infrastructure/terraform/` · mapa com VPS: [MAPA_LOCAL_AZURE.md](../../infrastructure/MAPA_LOCAL_AZURE.md).
+| [../../infrastructure/MAPA_LOCAL_AZURE.md](../../infrastructure/MAPA_LOCAL_AZURE.md) | Tabela Local \| Azure \| AWS |
+| [deploy/](../deploy/) | Deploy Azure / AWS |
+| [../../infrastructure/terraform/apresentacao/](../../infrastructure/terraform/apresentacao/) | Terraform Azure (Kafka + Mongo + ADLS + API) |
+| [../../infrastructure/terraform/aws/](../../infrastructure/terraform/aws/) | Terraform AWS preparado |
 
 [← Índice geral](../README.md)

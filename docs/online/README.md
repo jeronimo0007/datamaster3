@@ -16,7 +16,6 @@ A API e o Kafka são a **camada de serving** da demo — o núcleo do projeto é
 | Documento | Conteúdo |
 |-----------|----------|
 | [../operacao/SERVICOS_DOCKER.md](../operacao/SERVICOS_DOCKER.md) | Stack completa |
-| [../operacao/QUICK_START.md](../operacao/QUICK_START.md) | Analyze / Swagger |
 | [../../src/data_ingestion/kafka_client.py](../../src/data_ingestion/kafka_client.py) | Cliente Kafka unificado local/Azure |
 
 [← Índice](../README.md)

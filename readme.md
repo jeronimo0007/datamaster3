@@ -65,6 +65,10 @@ flowchart LR
   Api --> Dash
 ```
 
+![Arquitetura de dados ponta a ponta](docs/arquitetura/datamaster-00-visao-geral.jpg)
+
+*Diagrama editável: `docs/arquitetura/datamaster-00-visao-geral.drawio` · imagem: `docs/arquitetura/datamaster-00-visao-geral.jpg`*
+
 ---
 
 ## 3. Arquitetura de dados (detalhada)

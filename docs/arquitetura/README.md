@@ -1,39 +1,27 @@
-# Arquitetura DataMaster (visão engenharia de dados)
+# Arquitetura DataMaster
 
-```mermaid
-flowchart TB
-  subgraph fontes [Fontes]
-    Pub[API_publica_fraude]
-    Syn[Sintetico]
-    Fmt[JSON_CSV_Parquet_XML]
-  end
-  subgraph orch [Airflow]
-    Ing[ingest_multi_source]
-    Br[bronze]
-    Dq[dq_gate]
-    Si[silver]
-    Go[gold]
-  end
-  subgraph lake [Lake]
-    LB[(bronze)]
-    LS[(silver)]
-    LG[(gold)]
-  end
-  subgraph serve [Serving]
-    Kf[Kafka]
-    Api[API_Java]
-  end
-  Pub --> Ing
-  Syn --> Ing
-  Fmt --> Ing
-  Ing --> Br --> LB --> Dq --> Si --> LS --> Go --> LG
-  LG -.-> Api
-  Kf --> Api
-```
+Diagramas de arquitetura do projeto (o que a banca deve ver).
 
-- Paths: `src/data_architecture/medallion.py`
-- Transformações: `src/data_processing/`
-- DAGs: `airflow/dags/`
-- Cloud: Azure (ADLS + Kafka + MongoDB + Airflow/Spark)
+## Visão geral ponta a ponta
 
-Removido do discurso: Lambda architecture, RabbitMQ, comparação AWS.
+![Visão geral ponta a ponta](datamaster-00-visao-geral.jpg)
+
+*Editável: `datamaster-00-visao-geral.drawio` (abrir no app.diagrams.net) → exportar JPG.*
+
+## Batch Medallion
+
+![Batch Medallion](datamaster-01-batch-medallion.png)
+
+## Online / Serving
+
+![Online gateway](datamaster-02-online-gateway.png)
+
+## Mapa multicloud
+
+![Mapa](datamaster-03-mapa.png)
+
+---
+
+**Arquitetura ponta a ponta (texto):** ver [README raiz](../../readme.md) — seções "Arquitetura geral" e "Arquitetura de dados (detalhada)".
+
+Diagramas editáveis: `.drawio` (abrir no app.diagrams.net).

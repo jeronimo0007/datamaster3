@@ -3,6 +3,7 @@
 # Airflow local
 # Airflow metadata (SQLite)
 # Artefatos de pipeline gerados na demo
+# Docs que a banca não precisa ver (material interno/legado)
 # Env / secrets locais
 # IDE / OS
 # Java
@@ -47,7 +48,25 @@ data/lake/silver/
 data/landing/run=*/
 data/transactions.json
 dist/
+docs/.env.example
+docs/.env.vps.example
+docs/arquitetura/.*.bkp
+docs/arquitetura/ARCHITECTURE.md
+docs/arquitetura/PROJETO_ESTRUTURADO.md
+docs/cloud/TERRAFORM_BANCA_MINIMO.md
+docs/cloud/TUTORIAL_AZURE_TERRAFORM_E_GITHUB_ACTIONS.md
+docs/cloud/cloud_comparison.md
+docs/contribuicao/
+docs/dados/LOCAL_SPARK.md
+docs/dados/MONGODB_COMPASS.md
 docs/estudos/
+docs/examples/
+docs/operacao/AMBIENTE_LOCAL.md
+docs/operacao/QUICK_START.md
+docs/operacao/ROTEIRO_TOUR_COMPONENTES.md
+docs/requirements-demo.txt
+infrastructure/terraform/banca-minimo/
+infrastructure/terraform/environments/
 node_modules/
 sql/
 tfplan

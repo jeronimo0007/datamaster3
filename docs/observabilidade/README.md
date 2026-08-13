@@ -7,8 +7,7 @@ Métricas, health checks e dashboards.
 | Documento | Conteúdo |
 |-----------|----------|
 | [../operacao/SERVICOS_DOCKER.md](../operacao/SERVICOS_DOCKER.md) | Prometheus + Grafana |
-| [../operacao/QUICK_START.md](../operacao/QUICK_START.md) | URLs :9090 e :3000 |
-| [../arquitetura/ARCHITECTURE.md](../arquitetura/ARCHITECTURE.md) | Telemetria na arquitetura |
+| [../arquitetura/README.md](../arquitetura/README.md) | Diagramas de arquitetura |
 
 ## Configuração
 
