@@ -20,10 +20,15 @@ docker compose up -d --build
 | # | Ação | OK? |
 |---|------|-----|
 | D1 | Trigger `datamaster_e2e` ou `ingest_landing.py` + `medallion_job.py all` | ☐ |
-| D2 | `data/landing/run=*/` com JSON, CSV, Parquet, XML | ☐ |
+| D2 | `data/landing/run=*/` com JSON, CSV, Parquet, XML + `source_metadata.json` (API OpenML) | ☐ |
 | D3 | `dq_latest.json` com success true | ☐ |
 | D4 | `data/lake/{bronze,silver,gold}` | ☐ |
-| D5 | Mostrar `src/data_processing/` | ☐ |
+| D5 | Mostrar `src/data_processing/` (Silver = harmonização) | ☐ |
+
+## 3. Fontes públicas (fala)
+
+- **CSV**: dataset público Credit Card Fraud (OpenML 1597 / Kaggle) via HTTP.
+- **JSON**: API pública OpenML → `source_metadata.json` na landing (proveniência/linhagem).
 
 ## 3. Serving (opcional)
 

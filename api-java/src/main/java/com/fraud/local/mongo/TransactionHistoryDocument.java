@@ -73,9 +73,9 @@ public class TransactionHistoryDocument {
     @Indexed
     private Instant timestamp;
 
-    /** Fila para replicação em Cosmos DB (produção). */
-    @Field("cosmos_sync_status")
-    private String cosmosSyncStatus;
+    /** Status de replicação (produção). */
+    @Field("sync_status")
+    private String syncStatus;
 
     public static TransactionHistoryDocument fromRecord(Map<String, Object> record) {
         TransactionHistoryDocument doc = new TransactionHistoryDocument();
@@ -105,8 +105,8 @@ public class TransactionHistoryDocument {
         } else {
             doc.setTimestamp(Instant.now());
         }
-        doc.setCosmosSyncStatus(
-                str(record.getOrDefault("cosmos_sync_status", "PENDING")));
+        doc.setSyncStatus(
+                str(record.getOrDefault("sync_status", "PENDING")));
         return doc;
     }
 

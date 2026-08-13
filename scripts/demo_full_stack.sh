@@ -8,7 +8,8 @@ echo "==> Garantindo stack..."
 docker compose up -d --build
 
 echo "==> Ingestão multi-formato (landing)..."
-python3 scripts/ingest_landing.py --skip-public || python3 scripts/ingest_landing.py -n 300 --skip-public
+# Tenta com fontes públicas (CSV + JSON OpenML); sem rede, cai para sintético
+python3 scripts/ingest_landing.py || python3 scripts/ingest_landing.py -n 300 --skip-public
 
 echo "==> Medallion Bronze → DQ → Silver → Gold..."
 python3 scripts/medallion_job.py all --backend pandas

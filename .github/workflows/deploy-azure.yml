@@ -1,5 +1,5 @@
 # Deploy Azure completo para apresentação (branch `azure`).
-# Secrets (Repository): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_db_admin_password
+# Secrets (Repository): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_mongo_admin_password
 # Opcional: TF_VAR_enable_analytics_stack=false | TF_VAR_name_suffix=banca2
 #
 # Fluxo: bootstrap state → terraform apply → build/push API Java → atualiza Container App → imprime URLs.
@@ -22,7 +22,7 @@ on:
       enable_analytics_stack:
         description: "Databricks + Synapse + AML (custo alto)"
         type: boolean
-        default: true
+        default: false
       name_suffix:
         description: "Sufixo estável dos nomes (padrao: banca)"
         required: true
@@ -48,8 +48,7 @@ jobs:
       id-token: write
       contents: read
     env:
-      TF_VAR_db_admin_password: ${{ secrets.TF_VAR_db_admin_password }}
-      TF_VAR_analytics_high_cost_acknowledged: "true"
+      TF_VAR_mongo_admin_password: ${{ secrets.TF_VAR_mongo_admin_password }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -60,8 +59,8 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          if [ -z "${TF_VAR_db_admin_password}" ]; then
-            echo "::error::Defina o Repository secret TF_VAR_db_admin_password."
+          if [ -z "${TF_VAR_mongo_admin_password}" ]; then
+            echo "::error::Defina o Repository secret TF_VAR_mongo_admin_password."
             missing=1
           fi
           if [ -z "${AZURE_CLIENT_ID}" ] || [ -z "${AZURE_TENANT_ID}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
@@ -74,12 +73,18 @@ jobs:
 
       - name: Definir variaveis de stack
         run: |
+          set -euo pipefail
           if [ -n "${{ secrets.TF_VAR_enable_analytics_stack }}" ]; then
-            echo "TF_VAR_enable_analytics_stack=${{ secrets.TF_VAR_enable_analytics_stack }}" >> "$GITHUB_ENV"
+            ANALYTICS="${{ secrets.TF_VAR_enable_analytics_stack }}"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "TF_VAR_enable_analytics_stack=${{ github.event.inputs.enable_analytics_stack }}" >> "$GITHUB_ENV"
+            ANALYTICS="${{ github.event.inputs.enable_analytics_stack }}"
           else
-            echo "TF_VAR_enable_analytics_stack=true" >> "$GITHUB_ENV"
+            ANALYTICS="false"
+          fi
+          echo "TF_VAR_enable_analytics_stack=${ANALYTICS}" >> "$GITHUB_ENV"
+          # cost_guards.tf exige acknowledge quando a stack analítica está ligada
+          if [ "${ANALYTICS}" = "true" ]; then
+            echo "TF_VAR_analytics_high_cost_acknowledged=true" >> "$GITHUB_ENV"
           fi
 
           if [ -n "${{ secrets.TF_VAR_name_suffix }}" ]; then
@@ -107,9 +112,6 @@ jobs:
             Microsoft.App \
             Microsoft.ContainerRegistry \
             Microsoft.OperationalInsights \
-            Microsoft.EventHub \
-            Microsoft.DocumentDB \
-            Microsoft.DBforPostgreSQL \
             Microsoft.KeyVault \
             Microsoft.Storage \
             Microsoft.Insights \

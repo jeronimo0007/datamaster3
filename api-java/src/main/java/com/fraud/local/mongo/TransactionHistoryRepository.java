@@ -9,5 +9,5 @@ import org.springframework.stereotype.Repository;
 public interface TransactionHistoryRepository
         extends MongoRepository<TransactionHistoryDocument, String> {
 
-    long countByCosmosSyncStatus(String cosmosSyncStatus);
+    long countBySyncStatus(String syncStatus);
 }

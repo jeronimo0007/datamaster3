@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Profile("local")
 public class TransactionHistoryService {
 
-    public static final String COSMOS_PENDING = "PENDING";
+    public static final String SYNC_PENDING = "PENDING";
 
     private final TransactionHistoryRepository repository;
     private final LgpdMaskingService masking;
@@ -41,9 +41,9 @@ public class TransactionHistoryService {
         record.put("payment_method", identity.normalizePaymentMethod(pm == null ? null : String.valueOf(pm)));
     }
 
-    /** Persiste transação analisada para histórico local (Cosmos em produção). */
+    /** Persiste transação analisada para histórico local (replicação em produção). */
     public void persist(Map<String, Object> record) {
-        record.putIfAbsent("cosmos_sync_status", COSMOS_PENDING);
+        record.putIfAbsent("sync_status", SYNC_PENDING);
         repository.save(TransactionHistoryDocument.fromRecord(record));
     }
 
@@ -51,8 +51,8 @@ public class TransactionHistoryService {
         return repository.count();
     }
 
-    public long countPendingCosmosSync() {
-        return repository.countByCosmosSyncStatus(COSMOS_PENDING);
+    public long countPendingSync() {
+        return repository.countBySyncStatus(SYNC_PENDING);
     }
 
     /** Visão pública da lista — PII mascarado (LGPD). */
@@ -74,7 +74,7 @@ public class TransactionHistoryService {
         out.put("profile_found", record.get("profile_found"));
         out.put("processing_time_ms", record.get("processing_time_ms"));
         out.put("timestamp", record.get("timestamp"));
-        out.put("cosmos_sync_status", record.get("cosmos_sync_status"));
+        out.put("sync_status", record.get("sync_status"));
         out.put("history_stored", true);
 
         out.put("holder_document", masking.maskCpf(stringVal(record.get("holder_document"))));

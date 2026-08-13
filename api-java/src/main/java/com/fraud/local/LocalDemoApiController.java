@@ -137,7 +137,7 @@ public class LocalDemoApiController {
             record.put("timestamp", now.toInstant().toString());
             record.put("anomaly_reasons", profileContext.get("anomaly_reasons"));
             record.put("profile_found", profileContext.get("profile_found"));
-            record.put("cosmos_sync_status", TransactionHistoryService.COSMOS_PENDING);
+            record.put("sync_status", TransactionHistoryService.SYNC_PENDING);
             state.addTransaction(record);
             transactionHistory.persist(record);
             analyzedEventService.publishFromAnalyzeRecord(record);
@@ -196,8 +196,8 @@ public class LocalDemoApiController {
                 state.getTransactions().size(),
                 "history_mongodb",
                 transactionHistory.countHistory(),
-                "history_cosmos_pending",
-                transactionHistory.countPendingCosmosSync(),
+                "history_pending_sync",
+                transactionHistory.countPendingSync(),
                 "filter",
                 filter,
                 "returned",
@@ -232,8 +232,8 @@ public class LocalDemoApiController {
                 count,
                 "transaction_history_count",
                 historyCount,
-                "transaction_history_cosmos_pending",
-                transactionHistory.countPendingCosmosSync(),
+                "transaction_history_pending_sync",
+                transactionHistory.countPendingSync(),
                 "batch_ready",
                 count > 0,
                 "hint",

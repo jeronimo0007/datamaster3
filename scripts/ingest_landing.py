@@ -7,7 +7,8 @@ Gera/baixa dados de fraude e materializa 4 formatos:
 
 Fontes:
   - Gerador sintético local (sempre disponível)
-  - Dataset público Credit Card Fraud (OpenML / CSV remoto) quando houver rede
+  - Dataset público Credit Card Fraud (OpenML 1597 / CSV remoto) — dados
+  - API pública OpenML (JSON) — metadados/proveniência do dataset
 """
 from __future__ import annotations
 
@@ -20,7 +21,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.data_ingestion.landing_writer import write_multi_format_landing
-from src.data_ingestion.public_fraud_sources import collect_fraud_records
+from src.data_ingestion.public_fraud_sources import (
+    collect_fraud_records,
+    fetch_public_openml_metadata,
+)
 
 
 def main() -> int:
@@ -34,7 +38,8 @@ def main() -> int:
         n_synthetic=args.n_synthetic,
         fetch_public=not args.skip_public,
     )
-    paths = write_multi_format_landing(records, run_id=args.run_id)
+    metadata = {} if args.skip_public else fetch_public_openml_metadata()
+    paths = write_multi_format_landing(records, run_id=args.run_id, metadata=metadata)
     print("Landing escrita:")
     for fmt, path in paths.items():
         print(f"  {fmt}: {path}")

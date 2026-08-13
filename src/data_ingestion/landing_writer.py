@@ -89,9 +89,17 @@ def write_parquet(records: list[dict[str, Any]], folder: Path) -> Path:
             return alt
 
 
+def write_metadata_json(metadata: dict[str, Any], folder: Path) -> Path:
+    """Grava metadados de fonte pública (API OpenML) na landing — proveniência."""
+    path = folder / "source_metadata.json"
+    path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
 def write_multi_format_landing(
     records: list[dict[str, Any]],
     run_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Path]:
     folder = _run_folder(run_id)
     # também atualiza JSON legado para batch_dataprep_mongo / API
@@ -99,10 +107,13 @@ def write_multi_format_landing(
     legacy.parent.mkdir(parents=True, exist_ok=True)
     legacy.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    return {
+    out = {
         "json": write_json(records, folder),
         "csv": write_csv(records, folder),
         "parquet": write_parquet(records, folder),
         "xml": write_xml(records, folder),
         "legacy_json": legacy,
     }
+    if metadata:
+        out["metadata_json"] = write_metadata_json(metadata, folder)
+    return out

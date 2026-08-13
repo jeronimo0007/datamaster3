@@ -1,4 +1,17 @@
-"""Camada Silver: limpeza, tipagem e enriquecimento."""
+"""
+Camada Silver — dados limpos, tipados e harmonizados.
+
+Na arquitetura Medallion de referência (Databricks/Delta), a Silver é a camada
+de **harmonização**: unifica múltiplas fontes num schema canônico, aplica
+regras de negócio, deduplicação e enriquecimento, e só entra após o DQ gate.
+
+Responsabilidades:
+- deduplicação por `transaction_id`;
+- tipagem consistente (amount, timestamps);
+- regras de domínio (amount não-negativo, categorias conhecidas);
+- features derivadas (is_weekend, is_night, mês);
+- agregações por usuário/merchant (enriquecimento).
+"""
 
 from __future__ import annotations
 

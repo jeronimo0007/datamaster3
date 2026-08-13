@@ -387,9 +387,9 @@ bash scripts/run_demo.sh</code></pre>
         <div class="step">
           <span class="step-num">4</span>
           <div>
-            <strong>Postgres + Grafana (se volume antigo)</strong>
+            <strong>Grafana (observabilidade)</strong>
             <pre><code>docker compose up -d grafana</code></pre>
-            <p>Grafana: pasta <strong>DataMaster</strong>.</p>
+            <p>Grafana: pasta <strong>DataMaster</strong> · Prometheus já coleta métricas da API.</p>
           </div>
         </div>
         <div class="step">
@@ -533,9 +533,9 @@ bash scripts/run_demo.sh</code></pre>
             <strong>Ordem na banca (espelha o slide 4b)</strong>
             <p>
               Mermaid no projetor → depois zoom técnico:
-              <code>datamaster-04-docker-compose.drawio</code> (Docker) ou
-              <code>datamaster-02-online.drawio</code> (demo API) · encerramento:
-              <code>datamaster-azure-aws-local.drawio</code>.
+              <code>datamaster-01-batch-medallion.drawio</code> (lake Medallion) ou
+              <code>datamaster-02-online-gateway.drawio</code> (serving online) ·
+              encerramento: <code>datamaster-03-mapa.drawio</code> (multicloud).
             </p>
             <p style="color:var(--muted);font-size:0.88rem;margin-top:0.35rem;">
               Índice completo: <code>docs/arquitetura/README.md</code> · regenerar:
@@ -555,7 +555,7 @@ bash scripts/run_demo.sh</code></pre>
       </div>
       <p style="color:var(--muted);font-size:0.88rem;margin-top:0.75rem;">
         <strong>Tour de componentes</strong> (mostrar Airflow, Kafka, Grafana, Mongo…):
-        <code>docs/operacao/ROTEIRO_TOUR_COMPONENTES.md</code> ·
+        <code>docker compose ps</code> ·
         <code>bash scripts/status-stack.sh</code>
       </p>
       <p style="color:var(--muted);font-size:0.88rem;margin-top:0.5rem;">

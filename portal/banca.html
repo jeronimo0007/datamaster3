@@ -635,7 +635,7 @@
   <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
 </head>
 <body>
-<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Atualizado: foco engenharia de dados · Airflow Medallion · Azure only · sem RabbitMQ/Lambda/AWS. Ver README e Airflow :8085</div>
+<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Foco engenharia de dados · Airflow + Medallion (Bronze → Silver → Gold) · mesma stack local/Azure/AWS (Kafka = Kafka, Mongo = Mongo). Ver README · Airflow :8085</div>
 
   <div class="progress-top" aria-hidden="true"><div class="progress-top__fill" id="progress-fill"></div></div>
 
@@ -687,7 +687,7 @@
         <div class="logo-row"><i class="bi bi-bank2"></i> Plataforma de dados · Azure / AWS · Banca</div>
         <p class="eyebrow">Apresentação</p>
         <h1 class="slide-title">Sistema de detecção de <em>fraudes bancárias</em></h1>
-        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três frentes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>VPS homelab</strong> (Kubernetes, mesma stack) · <strong>Azure</strong> (<code>terraform/apresentacao</code>, mesmo desenho). <strong>AWS</strong> entra como <strong>mapa Local ↔ Azure</strong> (equivalências), Cloud única: Azure.</p>
+        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três ambientes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>Azure</strong> (<code>terraform/apresentacao</code>, mesmo desenho) · <strong>AWS preparado</strong> (<code>terraform/aws</code>). Mesma stack em todos — sem serviços equivalentes.</p>
         <div class="closing-flow" id="closing-flow" aria-label="Pipeline completo em movimento — da fonte ao alerta">
           <p class="closing-flow__cap">Visão do fluxo · do dado bruto ao alerta</p>
           <svg viewBox="0 0 920 210" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -752,25 +752,24 @@
             </ul>
           </div>
           <div class="card-panel" style="margin:0;border-color:rgba(252,211,77,0.35);">
-            <strong style="color:var(--accent-2);font-size:0.82rem;">② VPS — stack completa (k3s)</strong>
+            <strong style="color:var(--accent-2);font-size:0.82rem;">② AWS — preparado (mesma stack)</strong>
             <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
-              <li>Branch <code>vps</code> → GitHub Actions ou <code>bash scripts/deploy-kubernetes-server.sh</code></li>
-              <li>Mesmos blocos: API, portal, dashboard, Spark, Kafka, Kafka, serving API, observabilidade</li>
-              <li>Mostrar NodePorts / <code>kubectl get pods -n datamaster</code> (provisionamento em andamento ou pronto)</li>
+              <li><code>infrastructure/terraform/aws/</code> — S3 + Kafka + MongoDB + ECS/EKS (mesmo contrato)</li>
+              <li>Não sobe na banca; provo com o mapa <strong>Local = Azure = AWS</strong> que o desenho não depende de vendor</li>
             </ul>
           </div>
         </div>
         <div class="card-panel" style="margin-top:0.75rem;border-color:rgba(167,139,250,0.35);">
           <strong style="font-size:0.82rem;">③ Azure — stack de apresentação (Terraform)</strong>
           <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
-            <li><code>cd infrastructure/terraform/apresentacao && terraform apply</code> — ADLS Medallion, Kafka, MongoDB, Postgres, Key Vault, Monitor, Container Apps (API)</li>
-            <li>Stack analítica: <strong>Databricks + Synapse + Azure ML</strong> (<code>enable_analytics_stack = true</code> por padrão no Terraform)</li>
+            <li><code>cd infrastructure/terraform/apresentacao && terraform apply</code> — ADLS Medallion, Kafka, MongoDB, Key Vault, Monitor, Container Apps (API)</li>
+            <li>Stack analítica (opcional, alto custo): <strong>Databricks + Synapse + Azure ML</strong> (<code>enable_analytics_stack = false</code> por padrão)</li>
             <li>Disparar <strong>no início</strong> da apresentação; mostrar portal Azure / outputs / API FQDN enquanto roda a demo local</li>
           </ul>
         </div>
         <div class="diagram" style="margin-top:0.65rem;font-size:0.78rem;">
-          <strong>AWS:</strong> não subo na hora — uso o slide de <strong>mapa Local ↔ Azure</strong> (Kafka, S3, SageMaker…) para provar que o desenho não é preso a um vendor.
-          · Doc: <code>docs/deploy/</code> · <code>bash scripts/pre-banca-paralelo.sh</code>
+          <strong>Mesma stack:</strong> Kafka = Kafka, MongoDB = MongoDB nos três ambientes — só muda o runtime (Docker / ACI / ECS) e o object storage (MinIO / ADLS / S3).
+          · Doc: <code>docs/deploy/</code> · <code>docs/arquitetura/datamaster-03-mapa.drawio</code>
         </div>
       </div>
     </section>
@@ -983,7 +982,7 @@
         <div class="two-col" style="gap:0.65rem;">
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
             <li><strong>① Ingest:</strong> histórico simulado → <code>generate_data.py</code> / console :3333 (ADF · Glue na nuvem).</li>
-            <li><strong>②–③ Store + Process:</strong> Spark <code>spark_local_pipeline.py</code> — Bronze (JSON) → Silver (DQ) → Gold (features ML) em <code>data/lake/</code>.</li>
+            <li><strong>②–③ Store + Process:</strong> Spark <code>spark_local_pipeline.py</code> — Bronze (JSON) → Silver (harmonização/DQ) → Gold (features ML) em <code>data/lake/</code>.</li>
             <li><strong>④ Perfis:</strong> <code>batch_dataprep_mongo.py</code> agrega por <code>user_id</code> → MongoDB <code>user_profiles</code> (MongoDB na Azure).</li>
             <li><strong>⑤ Serve:</strong> API :8080 consulta perfil no <code>/analyze</code>; dashboard :8501 consome scores e fila de revisão.</li>
           </ul>
@@ -1010,14 +1009,14 @@
         </div>
         <div class="two-col">
           <ul class="clean card-panel" style="margin:0;">
-            <li><strong>Por quê três stores:</strong> lake = histórico/reprocessar; Mongo = serving online; Postgres = OLTP de referência — um banco só não atende as três cargas.</li>
-            <li><strong>Medallion:</strong> <code>01_dataprep_dq.py</code> · <code>medallion.py</code> — Bronze intacto → Silver DQ → Gold ML.</li>
+            <li><strong>Por quê duas camadas de armazenamento:</strong> lake = histórico/reprocessar; Mongo = serving online — cada carga tem seu storage certo.</li>
+            <li><strong>Medallion:</strong> <code>medallion_job.py</code> (bronze → dq → silver → gold) · Airflow — Bronze intacto → Silver harmonizado → Gold ML.</li>
             <li><strong>DW Kimball:</strong> Synapse / Redshift — fato + dimensões para BI (narrativa).</li>
           </ul>
           <ul class="clean card-panel" style="margin:0;">
-            <li><strong>Mongo / MongoDB:</strong> <code>user_profiles</code> para <code>/analyze</code> — <em>scoring não usa Postgres</em>.</li>
-            <li><strong>MongoDB (perfis):</strong> schema OLTP (transação, alerta, auditoria) na demo.</li>
-            <li><strong>Trade-off:</strong> tudo no Postgres = simples e fraco em ML; tudo no Mongo = ruim para SQL dimensional.</li>
+            <li><strong>MongoDB:</strong> <code>user_profiles</code> para <code>/analyze</code> — serving online de perfil de risco.</li>
+            <li><strong>MongoDB (perfis):</strong> pré-agregado no batch (histórico) e consultado pela API em tempo real.</li>
+            <li><strong>Trade-off:</strong> lake em ADLS/S3/MinIO para histórico e ML; Mongo para latência do score — cada um no seu papel.</li>
           </ul>
         </div>
       </div>
@@ -1161,14 +1160,13 @@
     <section class="slide slide--accent" data-slide="13">
       <div class="slide__inner">
         <p class="eyebrow">Demonstração ao vivo</p>
-        <h2 class="slide-heading">Trilha de demonstração · <span class="badge-time">local ao vivo + VPS + Azure</span></h2>
-        <p class="stack-note" style="margin-bottom:0.85rem;"><strong>Antes de começar (T0-pré):</strong> VPS + Azure em paralelo. <strong>Na mesa:</strong> (1) tour de <strong>todos os componentes</strong> — <code>docs/operacao/ROTEIRO_TOUR_COMPONENTES.md</code> · <code>bash scripts/status-stack.sh</code> — (2) demo de fraude T1–T7.</p>
+        <h2 class="slide-heading">Trilha de demonstração · <span class="badge-time">local ao vivo + Azure</span></h2>
+        <p class="stack-note" style="margin-bottom:0.85rem;"><strong>Antes de começar (T0-pré):</strong> Azure em paralelo. <strong>Na mesa:</strong> (1) tour de <strong>todos os componentes</strong> — <code>docker compose ps</code> — (2) demo de fraude T1–T7.</p>
         <div class="card-panel" style="margin:0;">
-          <strong style="color:var(--accent-2); font-size:0.8rem;">T0-pré — subir VPS + Azure (paralelo, ~15–40 min)</strong>
+          <strong style="color:var(--accent-2); font-size:0.8rem;">T0-pré — subir Azure (paralelo, ~15–40 min)</strong>
           <ul class="clean" style="margin-top:0.5rem;font-size:0.82rem;">
-            <li>VPS: <code>bash scripts/deploy-kubernetes-server.sh</code> no homelab <em>ou</em> push branch <code>vps</code> (Actions)</li>
             <li>Azure: <code>cd infrastructure/terraform/apresentacao && terraform apply</code></li>
-            <li>Cola: <code>bash scripts/pre-banca-paralelo.sh</code></li>
+            <li>GitHub Actions: workflow <code>deploy-azure</code> disparado no push da branch</li>
           </ul>
         </div>
         <div class="card-panel" style="margin-top:0.65rem;">
@@ -1223,7 +1221,7 @@ curl -s -X POST http://localhost:8080/api/v1/transactions/analyze \
             <thead><tr><th>Função</th><th>Azure / AWS (mesma stack)</th></tr></thead>
             <tbody>
               <tr><td>Streaming ingestão</td><td>Kafka (Kafka / MSK)</td></tr>
-              <tr><td>Alerta assíncrono (e-mail)</td><td>Kafka + Function (SQS + Lambda) — local: Kafka + worker</td></tr>
+              <tr><td>Alerta assíncrono</td><td>Kafka + worker (mesma stack nos 3 ambientes)</td></tr>
               <tr><td>Lake objeto</td><td>ADLS Gen2 (S3)</td></tr>
               <tr><td>Governança / catálogo</td><td>Purview (Lake Formation + Glue Catalog)</td></tr>
               <tr><td>Orquestração ETL</td><td>Data Factory (Glue Workflow / Step Functions)</td></tr>

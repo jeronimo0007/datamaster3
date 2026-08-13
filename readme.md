@@ -93,8 +93,8 @@ flowchart TB
     Report[dq_latest.json]
   end
 
-  subgraph silver [Silver - limpo e enriquecido]
-    S[dedup + tipagem + enriquecimento por usuário/merchant]
+  subgraph silver [Silver - harmonização]
+    S[dedup + schema canônico + tipagem + enriquecimento por usuário/merchant]
   end
 
   subgraph gold [Gold - features para consumo]
@@ -122,17 +122,39 @@ flowchart TB
 | **Kafka como barramento** | Evento de negócio `transaction-analyzed` desacoplado do HTTP; mesmo contrato na nuvem |
 | **MongoDB para perfis** | Feature store leve para o `/analyze` não fazer full scan no lake |
 | **Adapter canônico** | Fontes diferentes → schema único (transação, usuário, valor, país, fraude) |
-| **Multi-formato na landing** | Prova ingestão real: JSON, CSV, Parquet, XML + fonte pública |
+| **Harmonização na Silver** | Dados de múltiplas fontes são unificados (dedup, tipos, regras, enriquecimento) antes do consumo — padronização em vez de "wide table" |
+| **Multi-formato na landing** | Prova ingestão real: JSON, CSV, Parquet, XML + fontes públicas CSV e JSON |
 
 ### 3.3 Dicionário de camadas
 
+A arquitetura segue o padrão Medallion de referência (Databricks/Delta): a camada
+**Silver é a camada de harmonização** — unifica fontes heterogêneas num schema
+canônico, deduplica, tipa e enriquece antes do consumo.
+
 | Camada | Papel | Formato | Onde (path) |
 |--------|-------|---------|-------------|
-| Landing | Dado como chega | JSON/CSV/Parquet/XML | `data/landing/run=*/` |
-| Bronze | Fiel à origem, auditável | Parquet | `data/lake/bronze/transactions/` |
-| Silver | Limpo, dedup, enriquecido | Parquet por data | `data/lake/silver/transactions/` |
-| Gold | Features p/ ML/BI | Parquet por data | `data/lake/gold/transactions_ml/` |
-| DQ report | Relatório do gate | JSON | `data/lake/reports/dq_latest.json` |
+| Landing | Dado como chega (multi-fonte e multi-formato) | JSON/CSV/Parquet/XML + `source_metadata.json` | `data/landing/run=*/` |
+| Bronze | Fiel à origem, auditável, imutável | Parquet | `data/lake/bronze/transactions/` |
+| DQ gate | Validação (nulos, duplicados, faixa, fraude) — bloqueia avanço | JSON | `data/lake/reports/dq_latest.json` |
+| Silver | **Harmonização**: limpo, dedup, tipado, enriquecido | Parquet por data | `data/lake/silver/transactions/` |
+| Gold | Features p/ ML/BI (consumo) | Parquet por data | `data/lake/gold/transactions_ml/` |
+
+### 3.4 Fontes de dados (públicas e sintéticas)
+
+| Fonte | Tipo | Formato na landing | Origem |
+|-------|------|--------------------|--------|
+| Gerador sintético | Local, determinístico (seed 42) | JSON/CSV/Parquet/XML | Sempre disponível, offline |
+| **Credit Card Fraud (OpenML 1597 / Kaggle)** | Dataset público | CSV | [`raw.githubusercontent.com/.../creditcard.csv`](https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv) |
+| **API pública OpenML** | API REST pública | JSON (`source_metadata.json`) | [`openml.org/api/v1/json/data/1597`](https://www.openml.org/api/v1/json/data/1597) |
+
+- **CSV** — dataset público **Credit Card Fraud Detection** (OpenML id 1597, mesmo dataset do Kaggle `creditcard.csv`), espelho raw no GitHub:
+  <https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv>
+- **JSON** — API pública do OpenML, endpoint `/api/v1/json/data/1597`:
+  <https://www.openml.org/api/v1/json/data/1597> — metadados/proveniência do dataset gravados na landing (`source_metadata.json`).
+- Dataset de origem (OpenML): <https://www.openml.org/d/1597>
+- Código: [`src/data_ingestion/public_fraud_sources.py`](src/data_ingestion/public_fraud_sources.py).
+
+Se não houver rede, a ingestão segue só com dados sintéticos (a demo nunca falha offline).
 
 ---
 
@@ -147,12 +169,13 @@ Para o analisador da banca localizar cada peça rapidamente:
 | Orquestração (e2e) | [`airflow/dags/datamaster_e2e.py`](airflow/dags/datamaster_e2e.py) | Gatilho do fluxo completo |
 | Bronze | [`src/data_processing/bronze.py`](src/data_processing/bronze.py) | Landing → Parquet |
 | DQ gate | [`src/data_processing/dq.py`](src/data_processing/dq.py) | Checks + `success` |
-| Silver | [`src/data_processing/silver.py`](src/data_processing/silver.py) | Clean + enrich |
+| Silver (harmonização) | [`src/data_processing/silver.py`](src/data_processing/silver.py) | Clean + enrich (schema canônico) |
 | Gold | [`src/data_processing/gold.py`](src/data_processing/gold.py) | Features ML |
 | Backend alternativo | [`src/data_processing/pandas_pipeline.py`](src/data_processing/pandas_pipeline.py) | Mesmo layout sem Spark (worker leve) |
 | Contrato de paths | [`src/data_architecture/medallion.py`](src/data_architecture/medallion.py) | `MedallionLayout` |
-| Ingestão multi-formato | [`src/data_ingestion/landing_writer.py`](src/data_ingestion/landing_writer.py) | Escreve JSON/CSV/Parquet/XML |
-| Fonte pública | [`src/data_ingestion/public_fraud_sources.py`](src/data_ingestion/public_fraud_sources.py) | Dados públicos de fraude |
+| Ingestão multi-formato | [`src/data_ingestion/landing_writer.py`](src/data_ingestion/landing_writer.py) | Escreve JSON/CSV/Parquet/XML + `source_metadata.json` |
+| Fonte pública CSV | [`src/data_ingestion/public_fraud_sources.py`](src/data_ingestion/public_fraud_sources.py) | Credit Card Fraud (OpenML 1597) via HTTP |
+| Fonte pública JSON | [`src/data_ingestion/public_fraud_sources.py`](src/data_ingestion/public_fraud_sources.py) | API OpenML → `source_metadata.json` (linhagem) |
 | Streaming | [`src/data_ingestion/kafka_client.py`](src/data_ingestion/kafka_client.py) | Producer/Consumer Kafka unificado |
 | Adapters | [`src/data_ingestion/transaction_adapters.py`](src/data_ingestion/transaction_adapters.py) | Normalização p/ schema canônico |
 | CLI do pipeline | [`scripts/ingest_landing.py`](scripts/ingest_landing.py) · [`scripts/medallion_job.py`](scripts/medallion_job.py) | Executar local |

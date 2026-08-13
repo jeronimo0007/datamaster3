@@ -3,7 +3,8 @@ resource_group_name  = "rg-fraud-apresentacao"
 location             = "brazilsouth"
 name_suffix          = "banca"
 mongo_admin_password = "admin123ChangeMe"
+api_container_image  = null  # null = quickstart até o build no Actions
 
-# Databricks/Synapse/ML — desligado por padrão (custo)
+# Databricks/Synapse/ML — desligado por padrão (custo alto)
 enable_analytics_stack            = false
 analytics_high_cost_acknowledged  = false

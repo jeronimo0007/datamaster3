@@ -19,10 +19,14 @@ def _run_ingest(**_context):
 
     sys.path.insert(0, str(PROJECT))
     from src.data_ingestion.landing_writer import write_multi_format_landing
-    from src.data_ingestion.public_fraud_sources import collect_fraud_records
+    from src.data_ingestion.public_fraud_sources import (
+        collect_fraud_records,
+        fetch_public_openml_metadata,
+    )
 
     records = collect_fraud_records(n_synthetic=400, fetch_public=True)
-    paths = write_multi_format_landing(records)
+    metadata = fetch_public_openml_metadata()
+    paths = write_multi_format_landing(records, metadata=metadata)
     for fmt, path in paths.items():
         print(f"{fmt}: {path}")
 

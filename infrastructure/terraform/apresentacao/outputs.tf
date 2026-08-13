@@ -44,6 +44,10 @@ output "container_app_api_fqdn" {
   value = try(azurerm_container_app.api.ingress[0].fqdn, try(azurerm_container_app.api.latest_revision_fqdn, ""))
 }
 
+output "container_app_api_name" {
+  value = azurerm_container_app.api.name
+}
+
 output "container_app_api_url" {
   value = "https://${try(azurerm_container_app.api.ingress[0].fqdn, azurerm_container_app.api.latest_revision_fqdn)}"
 }

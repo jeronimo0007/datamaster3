@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 OUT_DIR = Path(__file__).resolve().parents[1] / "docs" / "arquitetura"
-COMBINED = OUT_DIR / "datamaster-azure-aws-local.drawio"
 
 AZURE, AZURE_BG = "#0078D4", "#E8F4FC"
 AWS, AWS_BG = "#232F3E", "#FFF4E5"
@@ -380,36 +379,6 @@ def build_overview() -> str:
     return g.wrap_diagram("00-Visao-Geral", pw, ph)
 
 
-def build_batch() -> str:
-    g = G()
-    pw, ph = 1840, 780
-    root, layer = g.nid(), g.nid()
-    g.cells = ['        <mxCell id="0"/>\n', f'        <mxCell id="{root}" parent="0"/>\n', f'        <mxCell id="{layer}" parent="{root}"/>\n']
-    g.hdr(layer, "01 — ENGENHARIA DE DADOS (BATCH)", "Medalhão: Bronze → Prata → Ouro · perfis no MongoDB", 24, 16, pw - 48, BATCH_HDR)
-    z = g.c(layer, "", 24, 72, pw - 48, 420, f"rounded=0;fillColor={BATCH_BG};strokeColor={BATCH_BORDER};strokeWidth=3;", "z")
-    g.batch_engineering_flow(z, 48, pw - 96, compact=False, include_serving=True)
-    g.c(
-        z,
-        "<b>Onde roda na demo:</b> Spark <code>spark-job</code> (Bronze→Prata→Ouro em data/lake/)  ·  "
-        "Perfis: <code>batch_dataprep_mongo.py</code> (atalho direto do JSON)",
-        24,
-        400,
-        pw - 96,
-        44,
-        "rounded=1;fillColor=#FFF;strokeColor=#D4A017;fontFamily=Segoe UI;fontSize=11;align=center;",
-    )
-    g.c(
-        layer,
-        "Pastas locais: data/lake/bronze · silver · gold  ·  MinIO buckets homônimos  ·  Notebook 01_dataprep_dq.py",
-        24,
-        520,
-        pw - 48,
-        32,
-        "rounded=0;fillColor=#F3F2F1;fontFamily=Segoe UI;fontSize=10;align=center;fontColor=#666;",
-    )
-    return g.wrap_diagram("01-Batch", pw, ph)
-
-
 def build_batch_medallion() -> str:
     """Estilo Azure: Ingest · Store · Process · Serve · Monitor and govern."""
     g = G()
@@ -492,7 +461,7 @@ def build_batch_medallion() -> str:
         sz, "2", "Bronze", "bruto · JSON", 36, 96, 130, 80, "store", "st_bronze"
     )
     silver = g.step_green(
-        sz, "3", "Silver", "limpo · DQ", 196, 96, 130, 80, "store", "st_silver"
+        sz, "3", "Silver", "harmonizado · DQ", 196, 96, 130, 80, "store", "st_silver"
     )
     gold = g.step_green(
         sz, "4", "Gold", "features ML", 356, 96, 130, 80, "store", "st_gold"
@@ -594,24 +563,6 @@ def build_batch_medallion() -> str:
     )
 
     return g.wrap_diagram("01-Batch-Medallion-Azure", pw, ph)
-
-
-def build_online() -> str:
-    g = G()
-    pw, ph = 1600, 720
-    root, layer = g.nid(), g.nid()
-    g.cells = ['        <mxCell id="0"/>\n', f'        <mxCell id="{root}" parent="0"/>\n', f'        <mxCell id="{layer}" parent="{root}"/>\n']
-    g.hdr(layer, "02 — ARQUITETURA ONLINE", "Fluxo horizontal · tempo real", 24, 16, pw - 48, ONLINE_HDR)
-    z = g.c(layer, "", 24, 72, pw - 48, 400, f"rounded=0;fillColor={ONLINE_BG};strokeColor={ONLINE_BORDER};strokeWidth=3;", "z")
-    mongo = g.c(z, "← Batch\nMongoDB", 28, 16, 92, 50,
-        f"rounded=1;fillColor={BATCH_BG};strokeColor={BATCH_BORDER};dashed=1;dashPattern=6 4;fontFamily=Segoe UI;fontSize=10;align=center;", "mongo")
-    api_id, _ = g.online_flow(z, 48, pw - 96)
-    g.e(z, mongo, api_id, "consulta perfil", dashed=True)
-    g.c(z, "Fraude → alerta  |  Falso + → liberar  |  Dúvida → DeepSeek", 24, 200, pw - 96, 36,
-        "rounded=1;fillColor=#FFF;strokeColor=#0078D4;fontFamily=Segoe UI;fontSize=11;align=center;")
-    g.c(layer, "Console :3333 e Dashboard :8501 → API :8080 (HTTP)  ·  Kafka não está no caminho da demo", 24, 500, pw - 48, 32,
-        "rounded=0;fillColor=#F3F2F1;fontFamily=Segoe UI;fontSize=10;align=center;fontColor=#666;")
-    return g.wrap_diagram("02-Online", pw, ph)
 
 
 def build_online_gateway() -> str:
@@ -821,7 +772,7 @@ def build_online_gateway() -> str:
     )
     ms4 = g.c(
         ms,
-        "<b>Alertas</b><br><font style=\"font-size:9px\">RabbitMQ<br>email-worker</font>",
+        "<b>Evento</b><br><font style=\"font-size:9px\">Kafka<br>transaction-analyzed</font>",
         196,
         120,
         140,
@@ -857,19 +808,6 @@ def build_online_gateway() -> str:
         f"shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;fillColor={STORE};"
         f"strokeColor={STORE_BORDER};strokeWidth=2;whiteSpace=wrap;html=1;fontFamily=Segoe UI;fontSize=10;align=center;",
         "mongo",
-    )
-
-    # Cache Redis
-    cache = g.c(
-        pn,
-        "<b>Redis</b><br><font style=\"font-size:9px\">cache · sessão<br>(infra pronta)</font>",
-        360,
-        36,
-        100,
-        56,
-        "shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FDE7E9;strokeColor=#D13438;"
-        "strokeWidth=2;whiteSpace=wrap;html=1;fontFamily=Segoe UI;fontSize=10;align=center;",
-        "redis",
     )
 
     # Logging / observability
@@ -934,7 +872,6 @@ def build_online_gateway() -> str:
 
     g.e(pn, api, ms, "roteamento interno")
     g.e(pn, mongo, ms2, "consulta", dashed=True)
-    g.e(pn, api, cache, "", dashed=True)
     g.e(pn, api, log, "telemetria", dashed=True)
     g.e(pn, ms4, log, "", dashed=True)
     g.e(pn, dash, api, "GET/POST", dashed=True)
@@ -952,81 +889,6 @@ def build_online_gateway() -> str:
     )
 
     return g.wrap_diagram("02-Online-Gateway", pw, ph)
-
-
-def build_docker() -> str:
-    """Mapa dos containers do docker-compose e quem chama quem."""
-    g = G()
-    pw, ph = 1800, 1100
-    root, layer = g.nid(), g.nid()
-    g.cells = ['        <mxCell id="0"/>\n', f'        <mxCell id="{root}" parent="0"/>\n', f'        <mxCell id="{layer}" parent="{root}"/>\n']
-
-    g.c(layer, "<b>DataMaster — Docker Compose</b><br><font style=\"font-size:11px\">O que sobe com "
-              "<code>docker compose up -d --build</code> e como cada peça se conecta na demo</font>",
-        0, 0, pw, 48,
-        "rounded=0;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=none;fontColor=#FFFFFF;"
-        "fontFamily=Segoe UI;fontSize=14;align=center;verticalAlign=middle;")
-
-    def svc(pid, name: str, port: str, uso: str, x: float, y: float, w: float, h: float, color: str, key: str) -> str:
-        return g.c(
-            pid,
-            f"<b>{name}</b><br><font style=\"font-size:10px;color:#0078D4\">{port}</font><br>"
-            f"<font style=\"font-size:10px\">{uso}</font>",
-            x, y, w, h,
-            f"rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor={color};strokeWidth=2;"
-            "fontFamily=Segoe UI;fontSize=11;align=center;verticalAlign=middle;spacing=4;",
-            key,
-        )
-
-    # --- Zona ONLINE ---
-    g.hdr(layer, "CAMINHO ONLINE (demo principal)", "HTTP direto para a API — sem passar pelo Kafka", 28, 58, pw - 56, ONLINE_HDR)
-    oz = g.c(layer, "", 28, 108, pw - 56, 280, f"rounded=0;fillColor={ONLINE_BG};strokeColor={ONLINE_BORDER};strokeWidth=2;", "z_on")
-
-    user = g.c(oz, "<b>Você / navegador</b>", 24, 28, 120, 56,
-        "ellipse;fillColor=#F3F2F1;strokeColor=#605E5C;fontFamily=Segoe UI;fontSize=11;align=center;", "user")
-    portal = svc(oz, "portal", ":8880", "Links · slides · botão batch", 160, 24, 150, 72, "#605E5C", "portal")
-    console = svc(oz, "data-console", ":3333", "Gera JSON · POST analyze · batch-prep", 330, 24, 170, 72, LOCAL, "console")
-    dash = svc(oz, "dashboard", ":8501", "Streamlit · lê API · chat", 520, 24, 160, 72, LOCAL, "dash")
-    api = svc(oz, "api (Java)", ":8080", "Scoring · Mongo · alertas", 700, 24, 170, 72, ONLINE_HDR, "api")
-    mongo = svc(oz, "mongodb", ":27017", "user_profiles (batch)", 890, 24, 160, 72, BATCH_BORDER, "mongo")
-
-    g.e(oz, user, portal)
-    g.e(oz, user, console)
-    g.e(oz, user, dash)
-    g.e(oz, console, api, "POST /analyze")
-    g.e(oz, dash, api, "GET/POST API")
-    g.e(oz, api, mongo, "read perfil", dashed=False)
-
-    g.c(oz, "<b>Kafka + Zookeeper</b> (:9092) — sobem no compose, mas <b>não</b> recebem tráfego do console/API nesta demo",
-        24, 108, pw - 80, 36,
-        "rounded=1;fillColor=#F3F2F1;strokeColor=#A19F9D;dashed=1;dashPattern=6 4;fontSize=10;fontFamily=Segoe UI;align=left;spacingLeft=6;")
-
-    # --- Zona BATCH ---
-    g.hdr(layer, "CAMINHO BATCH", "Roda antes (ou pelo portal) · grava perfis no Mongo", 28, 408, pw - 56, BATCH_HDR)
-    bz = g.c(layer, "", 28, 458, pw - 56, 200, f"rounded=0;fillColor={BATCH_BG};strokeColor={BATCH_BORDER};strokeWidth=2;", "z_bt")
-
-    batch_prep = svc(bz, "batch-prep", "profile batch", "generate_data + batch_dataprep → Mongo", 24, 36, 200, 80, BATCH_BORDER, "batch_prep")
-    spark = svc(bz, "spark-master/worker", ":18080 UI", "Bronze → Prata → Ouro (spark-job)", 250, 36, 200, 80, BATCH_BORDER, "spark")
-    jupyter = svc(bz, "jupyter", ":8888", "Notebook Medalhão", 480, 36, 170, 80, BATCH_BORDER, "jupyter")
-    minio = svc(bz, "minio", ":9000 / :9001", "Buckets Bronze/Prata/Ouro", 680, 36, 170, 80, BATCH_BORDER, "minio")
-    g.e(bz, batch_prep, mongo, "upsert perfis", dashed=True)
-    g.e(bz, spark, minio, "lake (opcional)")
-
-    # --- Infra / observabilidade ---
-    g.hdr(layer, "INFRA PRONTA (não no fluxo principal da API demo)", "Disponível para narrativa de plataforma", 28, 678, pw - 56, "#605E5C")
-    iz = g.c(layer, "", 28, 728, pw - 56, 150, f"rounded=0;fillColor=#FAF9F8;strokeColor=#EDEBE9;strokeWidth=1;", "z_inf")
-        svc(iz, "redis", ":6379", "Cache (pronto)", 195, 28, 140, 64, "#EDEBE9", "redis")
-    prom = svc(iz, "prometheus", ":9090", "Scrape métricas API", 355, 28, 155, 64, "#EDEBE9", "prom")
-    graf = svc(iz, "grafana", ":3000", "Dashboards ops", 530, 28, 155, 64, "#EDEBE9", "graf")
-    g.e(iz, prom, api, "métricas", dashed=True)
-    g.e(iz, prom, graf)
-
-    g.c(layer, "<b>Comandos:</b> batch-prep: <code>docker compose --profile batch run --rm batch-prep</code>  ·  "
-              "Spark: <code>docker compose --profile spark-run run --rm spark-job</code>",
-        28, ph - 44, pw - 56, 32,
-        "rounded=0;fillColor=#F3F2F1;fontFamily=Segoe UI;fontSize=10;align=center;fontColor=#555;")
-
-    return g.wrap_diagram("04-Docker-Compose", pw, ph)
 
 
 def build_map() -> str:
@@ -1057,19 +919,6 @@ def build_map() -> str:
     return g.wrap_diagram("03-Mapa-Nuvem", pw, ph)
 
 
-def mxfile_body() -> str:
-    parts = [
-        build_overview(),
-        build_batch(),
-        build_batch_medallion(),
-        build_online(),
-        build_online_gateway(),
-        build_map(),
-        build_docker(),
-    ]
-    return "\n".join(parts)
-
-
 def write_file(path: Path, diagrams: str) -> None:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     n_pages = diagrams.count("<diagram ")
@@ -1083,26 +932,16 @@ def write_file(path: Path, diagrams: str) -> None:
 
 
 def main() -> None:
-    body = mxfile_body()
-    write_file(COMBINED, body)
-    write_file(OUT_DIR / "datamaster-00-visao-geral.drawio", build_overview())
-    write_file(OUT_DIR / "datamaster-01-batch.drawio", build_batch())
     write_file(OUT_DIR / "datamaster-01-batch-medallion.drawio", build_batch_medallion())
-    write_file(OUT_DIR / "datamaster-02-online.drawio", build_online())
     write_file(OUT_DIR / "datamaster-02-online-gateway.drawio", build_online_gateway())
     write_file(OUT_DIR / "datamaster-03-mapa.drawio", build_map())
-    write_file(OUT_DIR / "datamaster-04-docker-compose.drawio", build_docker())
 
-    print(f"✅ Combinado (7 abas): {COMBINED}")
-    print(f"✅ Separados em {OUT_DIR}/")
-    print("   - datamaster-00-visao-geral.drawio")
-    print("   - datamaster-01-batch.drawio")
-    print("   - datamaster-01-batch-medallion.drawio  ← estilo Azure (Ingest·Store·Process·Serve)")
-    print("   - datamaster-02-online.drawio  ← Canal → API (fluxo horizontal)")
-    print("   - datamaster-02-online-gateway.drawio  ← LB/GW apagados · importância APIM")
+    print(f"✅ Diagramas gerados em {OUT_DIR}/")
+    print("   - datamaster-01-batch-medallion.drawio  ← estilo Medallion (Bronze → Silver → Gold)")
+    print("   - datamaster-02-online-gateway.drawio  ← serving online (API + Kafka + Mongo)")
     print("   - datamaster-03-mapa.drawio")
-    print("   - datamaster-04-docker-compose.drawio  ← containers e conexões")
     print()
+    print("⚠  datamaster-00-visao-geral.drawio NÃO é regenerado: é editado manualmente (apresentação ponta-a-ponta).")
     print("Exportar SVG/PNG para portal/banca.html:")
     print("   bash scripts/export_portal_diagrams.sh")
 

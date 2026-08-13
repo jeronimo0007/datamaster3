@@ -65,9 +65,11 @@ docs/operacao/AMBIENTE_LOCAL.md
 docs/operacao/QUICK_START.md
 docs/operacao/ROTEIRO_TOUR_COMPONENTES.md
 docs/requirements-demo.txt
+email-worker/
 infrastructure/terraform/banca-minimo/
 infrastructure/terraform/environments/
 node_modules/
 sql/
+terraform/azure/
 tfplan
 venv/

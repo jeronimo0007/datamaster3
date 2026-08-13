@@ -4,7 +4,8 @@ Arquitetura Medallion (Bronze / Silver / Gold).
 Camadas
 -------
 - **Bronze:** landing fiel à origem (schema flexível, retenção maior, auditoria).
-- **Silver:** dados limpos, deduplicados, tipados; regras de negócio e DQ.
+- **Silver:** harmonização — dados limpos, deduplicados, tipados; regras de
+  negócio, schema canônico e DQ. É a camada que unifica fontes heterogêneas.
 - **Gold:** agregados e datasets de consumo (BI, ML serving batch, feature sets).
 
 O mesmo layout de prefixos funciona em **ADLS Gen2** (Azure) ou filesystem local,

@@ -1,8 +1,13 @@
 """
-Coleta de dados de fraude: sintético + fonte pública.
+Coleta de dados de fraude: sintético + fontes públicas (CSV e JSON).
 
-Fonte pública: amostra do dataset Credit Card Fraud (OpenML id 1597)
-via CSV remoto — demonstra ingestão HTTP real sem credenciais.
+Fontes públicas (sem credenciais):
+- **CSV**: dataset público "Credit Card Fraud Detection" (OpenML id 1597,
+  mesmo dataset do Kaggle creditcard.csv) via espelho raw no GitHub —
+  demonstra ingestão de arquivo CSV público via HTTP.
+- **JSON**: API pública do OpenML (`/api/v1/json/data/1597`) — demonstra
+  ingestão de API REST pública respondendo JSON, usada para capturar os
+  metadados do dataset (linhagem/proveniência) na zona landing.
 """
 
 from __future__ import annotations
@@ -20,11 +25,13 @@ from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
-# Amostra pequena hospedada (OpenML / raw gist-style CSV público)
+# Dataset público "Credit Card Fraud" — espelho CSV (OpenML 1597 / Kaggle creditcard.csv)
 PUBLIC_FRAUD_CSV_URLS = [
-    # OpenML credit-card-fraud sample mirror (primeiras linhas suficientes para demo)
     "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv",
 ]
+
+# API pública do OpenML — metadados do dataset em JSON
+OPENML_API_DATASET_URL = "https://www.openml.org/api/v1/json/data/1597"
 
 MERCHANT_CATEGORIES = [
     "Eletronicos",
@@ -108,6 +115,32 @@ def fetch_public_creditcard_sample(max_rows: int = 200) -> list[dict[str, Any]]:
     if last_err:
         logger.warning("Sem rede/fonte pública — usando só sintético (%s)", last_err)
     return []
+
+
+def fetch_public_openml_metadata() -> dict[str, Any]:
+    """
+    API pública OpenML (JSON) — metadados do dataset de fraude.
+
+    Demonstra ingestão de API REST pública com resposta JSON.
+    Retorna {} se a rede não estiver disponível (demo nunca quebra por isso).
+    """
+    try:
+        with urlopen(OPENML_API_DATASET_URL, timeout=30) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        desc = payload.get("data_set_description", {})
+        return {
+            "dataset_id": desc.get("id"),
+            "dataset_name": desc.get("name"),
+            "dataset_format": desc.get("format"),
+            "dataset_url": desc.get("url"),
+            "dataset_instances": desc.get("instances"),
+            "dataset_features": desc.get("features"),
+            "source": "public_openml_json",
+            "captured_at": datetime.utcnow().isoformat(timespec="seconds"),
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Falha ao consultar OpenML JSON (%s) — metadados omitidos", exc)
+        return {}
 
 
 def collect_fraud_records(

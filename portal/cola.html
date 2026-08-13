@@ -157,7 +157,7 @@
   </style>
 </head>
 <body>
-<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Atualizado: foco engenharia de dados · Airflow Medallion · Azure only · sem RabbitMQ/Lambda/AWS. Ver README e Airflow :8085</div>
+<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Foco engenharia de dados · Airflow + Medallion (Bronze → Silver → Gold) · mesma stack local/Azure/AWS (Kafka = Kafka, Mongo = Mongo). Ver README · Airflow :8085</div>
 
   <header>
     <h1>Cola do apresentador <span class="badge">NÃO compartilhar no Meet</span></h1>
@@ -171,7 +171,7 @@
       <a href="#t1">Tópico 1</a>
       <a href="#demos">Demos por slide</a>
       <a href="#defesa-kafka-cloud">Kafka cloud</a>
-      <a href="#defesa-postgres">Tópico 3 defesas</a>
+      <a href="#defesa-storage">Tópico 3 defesas</a>
       <a href="#defesa-obs">Observabilidade</a>
       <a href="#defesa-seg">Segurança 360°</a>
       <a href="#defesa-lgpd">LGPD</a>
@@ -310,16 +310,15 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Eu poderia unificar. Separarei porque Kafka registra o fato e Rabbit executa a tarefa. Só Kafka deixa o alerta mais pesado; só Rabbit deixa fraco o barramento analítico. No cloud: Kafka + Kafka — o porquê é o mesmo.”</p>
       </div>
 
-      <h3 id="defesa-kafka-cloud">Defesa — por que não Kafka em Azure/AWS? (tópico 2)</h3>
+      <h3 id="defesa-kafka-cloud">Defesa — Kafka igual nos três ambientes (tópico 2)</h3>
       <div class="why">
-        <strong>Poderia</strong> subir Kafka em qualquer nuvem (MSK, Confluent, AKS).<br>
-        <strong>Escolhi o PaaS nativo</strong> porque o desenho é o <em>papel</em>, não o logo do produto.
+        <strong>Subo Kafka</strong> em qualquer ambiente — local, Azure e AWS — sem trocar por “serviço equivalente”.
         <ul>
-          <li><strong>Mesa / k3s:</strong> Kafka — broker que eu opero no Compose/cluster.</li>
-          <li><strong>Azure:</strong> Kafka — gerenciado, Capture → ADLS, mesmo problema (partições, consumers, replay).</li>
-          <li><strong>AWS:</strong> Kafka ou MSK — Kafka = stream gerenciado; MSK se eu quiser API Kafka.</li>
+          <li><strong>Local / Docker:</strong> Kafka — broker que eu opero no Compose.</li>
+          <li><strong>Azure:</strong> Kafka — mesmo broker em Container Instances (ACI), mesmo contrato.</li>
+          <li><strong>AWS (preparado):</strong> Kafka — mesma stack no ECS/EKS.</li>
         </ul>
-        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Na mesa uso Kafka. Na Azure o equivalente é Kafka — eu poderia instalar Kafka lá; preferiria Kafka para reduzir operação. O porquê não muda: fato assíncrono após o analyze. Um desenho, três lugares — o produto muda, o papel não.”</p>
+        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Uso Kafka na mesa e o mesmo Kafka na nuvem — o contrato não muda (partições, consumer groups, replay). Um desenho, três lugares: Kafka = Kafka, MongoDB = MongoDB.”</p>
       </div>
 
       <h3>Slide 7 / 7c — Medallion / stores</h3>
@@ -327,18 +326,18 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <ul>
           <li><code>ls data/lake/bronze data/lake/silver data/lake/gold</code></li>
           <li>Notebook <code>01_dataprep_dq.py</code> · Spark UI :18080 · MinIO :9001</li>
-          <li>Postgres = OLTP ref.; scoring = Mongo</li>
+          <li>Lake = Bronze/Silver/Gold · scoring = Mongo</li>
         </ul>
       </div>
 
-      <h3 id="defesa-postgres">Defesa — armazenamento (tópico 3)</h3>
+      <h3 id="defesa-storage">Defesa — armazenamento (tópico 3)</h3>
       <div class="why">
-        <p style="margin:0 0 0.4rem;"><strong>Por que não só Postgres?</strong><br>
-        Um banco só não atende as três cargas. Lake = histórico/reprocessar; Mongo = perfil online; Postgres = OLTP de referência.</p>
-        <p style="margin:0 0 0.4rem;"><strong>API usa Postgres?</strong> <em>Não</em> no scoring da demo. Score = Mongo + heurística. Postgres prova o schema OLTP (<code>\dt</code>). “Não é enfeite — é fronteira relacional; o caminho crítico do score é Mongo de propósito.”</p>
+        <p style="margin:0 0 0.4rem;"><strong>Por que lake + Mongo?</strong><br>
+        Cada carga tem seu storage. Lake (Bronze/Silver/Gold) = histórico, reprocessamento e ML; Mongo = serving online de perfil de risco.</p>
+        <p style="margin:0 0 0.4rem;"><strong>API usa Mongo?</strong> <em>Sim</em> no scoring da demo. Score = Mongo (perfil) + heurística. “O caminho crítico do score é Mongo de propósito — baixa latência por <code>user_id</code>.”</p>
         <p style="margin:0 0 0.4rem;"><strong>Por que Mongo e não o lake no /analyze?</strong> Lake é volume/reprocessamento; lookup a cada request faria scan e estouraria &lt;2s. Batch materializa perfil → Mongo; API só lê por <code>user_id</code>.</p>
-        <p style="margin:0 0 0.4rem;"><strong>Medallion:</strong> Bronze = bruto (replay); Silver = DQ/limpo; Gold = consumo ML/BI.</p>
-        <p style="margin:0;"><em>Fala 10:</em> “Separei por carga. Scoring é Mongo, não Postgres. Lake não serve o online — perfil vem pré-agregado. Negócios lê Gold, não Kafka.”</p>
+        <p style="margin:0 0 0.4rem;"><strong>Medallion:</strong> Bronze = bruto (replay); Silver = harmonização (DQ/schema canônico/enriquecimento); Gold = consumo ML/BI.</p>
+        <p style="margin:0;"><em>Fala 10:</em> “Separei por carga. Scoring é Mongo. Lake não serve o online — perfil vem pré-agregado. Negócios lê Gold, não Kafka.”</p>
       </div>
 
       <h3>Slide 7b — Batch → Mongo → API</h3>
@@ -477,7 +476,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
       <div class="why">
         <strong>Q: “Tem senha no repositório?” — resposta honesta</strong>
         <ul>
-          <li><strong>Sim, credenciais de laboratório</strong>: <code>admin123</code> (Mongo/Postgres), <code>minioadmin</code>, <code>datamaster</code> (Rabbit). São <strong>fixas de propósito e documentadas no portal</strong> para a banca reproduzir a stack.</li>
+          <li><strong>Sim, credenciais de laboratório</strong>: <code>admin123</code> (Mongo), <code>minioadmin</code> (MinIO), <code>datamaster</code> (Kafka). São <strong>fixas de propósito e documentadas no portal</strong> para a banca reproduzir a stack.</li>
           <li><strong>Não há segredo real versionado:</strong> <code>.gitignore</code> bloqueia <code>.env</code>, <code>secrets/</code>, <code>*.pem</code>, <code>*.key</code>, <code>tfstate</code>. Chave de API externa vem por variável de ambiente.</li>
           <li>Todas já são lidas via <code>${VAR:-default}</code> — <strong>o caminho para o cofre já está aberto</strong>: em produção troco o default pela referência ao Key Vault / Secrets Manager, sem mudar código.</li>
           <li><em>Fala:</em> “Senha de lab documentada é diferente de segredo vazado. O que eu não faço é commitar credencial de ambiente real — e a aplicação já lê tudo de env var, que é o pré-requisito do cofre.”</li>
@@ -629,7 +628,7 @@ ls data/lake/bronze data/lake/silver data/lake/gold</pre>
         <strong>Medallion em 1 linha cada</strong>
         <ul>
           <li><strong>Bronze</strong> — landing bruta, intacta (auditoria / replay / reprocesso)</li>
-          <li><strong>Silver</strong> — limpo, tipado, DQ passou</li>
+          <li><strong>Silver</strong> — harmonizado: limpo, tipado, schema canônico, DQ passou</li>
           <li><strong>Gold</strong> — pronto para ML/BI (features, agregados) — <strong>sem PII</strong> para negócio</li>
         </ul>
       </div>
