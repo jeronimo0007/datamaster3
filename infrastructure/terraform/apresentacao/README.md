@@ -1,114 +1,17 @@
-# Terraform — stack de apresentação (Azure)
+# Terraform Azure — mesma stack do Docker Compose
 
-Use na banca **em paralelo** à demo local (Compose) e ao deploy VPS (k3s). Disparar com `bash scripts/pre-banca-paralelo.sh` (~15–40 min antes).
+| Local | Azure (este módulo) |
+|-------|---------------------|
+| Kafka | **Kafka** (ACI `bitnami/kafka`) |
+| MongoDB | **MongoDB** (ACI `mongo:6.0`) |
+| MinIO / lake | **ADLS Gen2** (`landing`/`bronze`/`silver`/`gold`) |
+| api-java | Container Apps + ACR |
+| Airflow / Spark | mesmos containers (expandir ACI/AKS se precisar na demo) |
 
-Provisiona o **mesmo desenho** dos slides e do Docker Compose / Kubernetes local:
-
-| Slide / local | Azure (este módulo) |
-|---------------|---------------------|
-| Event Hubs | `azurerm_eventhub` + namespace |
-| ADLS Bronze/Silver/Gold | containers `bronze`, `silver`, `gold` (+ `raw`/`processed`/`curated`) |
-| API REST | Container App + ACR (imagem `api-java`) |
-| Cosmos DB | `azurerm_cosmosdb_*` |
-| PostgreSQL | Flexible Server |
-| Key Vault | `azurerm_key_vault` |
-| Monitor + App Insights | Log Analytics + Application Insights |
-| Databricks / Synapse / AML | `enable_analytics_stack = true` (**padrão** na apresentação) |
-
-Mapa completo local ↔ nuvem: [../../MAPA_LOCAL_AZURE.md](../../MAPA_LOCAL_AZURE.md).
-
-### No slide mas não neste Terraform (fale na banca)
-
-| Bloco no diagrama | Na demo |
-|-------------------|---------|
-| **Data Factory** | Orquestração batch — local: `scripts/` + `demo_full_stack.sh`; Azure: ADF em projeto CI/CD |
-| **Purview** | Governança — `config/governanca.yaml` + narrativa |
-| **Power BI** | BI — local: **Streamlit** :8501 |
-
-Por padrão (`enable_analytics_stack = true`) entram **Databricks, Synapse e Azure ML** (par do slide de processamento/ML). Para desligar: `enable_analytics_stack = false` no `terraform.tfvars`.
-
-## Pré-requisitos
-
-```bash
-az login
-
-# Providers usados por este stack (obrigatório na subscription)
-az provider register -n Microsoft.App --wait
-az provider register -n Microsoft.ContainerRegistry --wait
-az provider register -n Microsoft.OperationalInsights --wait
-az provider register -n Microsoft.EventHub --wait
-az provider register -n Microsoft.DocumentDB --wait
-az provider register -n Microsoft.DBforPostgreSQL --wait
-az provider register -n Microsoft.KeyVault --wait
-az provider register -n Microsoft.Storage --wait
-az provider register -n Microsoft.Insights --wait
-az provider register -n Microsoft.Synapse --wait
-az provider register -n Microsoft.Databricks --wait
-az provider register -n Microsoft.MachineLearningServices --wait
-```
-
-### GitHub Actions (OIDC)
-
-O app registration precisa de **Contributor** e **User Access Administrator** na subscription
-(User Access Administrator é necessário para o Terraform conceder `Storage Blob Data Contributor` à identidade do Synapse):
-
-```bash
-APP_ID="<AZURE_CLIENT_ID>"
-SUB_ID="<AZURE_SUBSCRIPTION_ID>"
-az role assignment create --assignee "$APP_ID" --role "Contributor" --scope "/subscriptions/$SUB_ID"
-az role assignment create --assignee "$APP_ID" --role "User Access Administrator" --scope "/subscriptions/$SUB_ID"
-```
-
-Secrets no repo: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TF_VAR_db_admin_password`.
-
-Se um `apply` anterior falhou no meio, apague o resource group órfão antes de rodar de novo
-(o state do Actions é efêmero sem backend remoto):
-
-```bash
-az group delete -n rg-fraud-apresentacao-5fa704c3 --yes --no-wait
-```
-
-## Apply
+**Não provisiona:** Event Hubs, Cosmos DB, PostgreSQL, DocumentDB.
 
 ```bash
 cd infrastructure/terraform/apresentacao
 cp terraform.tfvars.example terraform.tfvars
-# Edite db_admin_password
-
-terraform init -upgrade
-terraform plan
-terraform apply
-```
-
-## Publicar API Java (após apply)
-
-```bash
-RG=$(terraform output -raw resource_group_name)
-ACR=$(terraform output -raw container_registry_login_server)
-APP=$(terraform output -raw container_app_api_name)
-
-az acr login --name "${ACR%%.azurecr.io}"
-
-docker build -f api-java/Dockerfile -t "${ACR}/fraud-api:apresentacao" api-java
-docker push "${ACR}/fraud-api:apresentacao"
-
-az containerapp update -g "$RG" -n "$APP" \
-  --image "${ACR}/fraud-api:apresentacao"
-
-az containerapp ingress update -g "$RG" -n "$APP" --target-port 8080
-
-FQDN=$(terraform output -raw container_app_api_fqdn)
-curl -s "https://${FQDN}/health"
-```
-
-## Stack analítica (Databricks + Synapse + AML)
-
-Já vem **ativa** no `terraform.tfvars.example`. Requer registro dos providers:
-
-`Microsoft.Synapse`, `Microsoft.Databricks`, `Microsoft.MachineLearningServices`.
-
-## Destruir
-
-```bash
-terraform destroy
+terraform init && terraform plan && terraform apply
 ```

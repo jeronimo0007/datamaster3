@@ -335,8 +335,8 @@
       <div class="badge"><i class="bi bi-shield-check"></i> Detecção de fraudes bancárias</div>
       <h1>Bem-vindo ao <em>DataMaster</em></h1>
       <p class="lead">
-        Hub local da demo: API Java, dashboard, gerador de dados, Spark e observabilidade.
-        Use esta página como ponto de partida na apresentação.
+        Foco em <strong>engenharia de dados</strong>: Airflow + Medallion + landing multi-formato.
+        API/portal são serving da demo. Cloud única: Azure.
       </p>
     </header>
 
@@ -351,11 +351,10 @@
           <tr><td>Grafana</td><td><code>:3000</code></td><td><code>admin</code></td><td><code>admin</code></td></tr>
           <tr><td>Jupyter</td><td><code>:8888</code></td><td>—</td><td><code>datamaster</code> (token)</td></tr>
           <tr><td>MongoDB</td><td><code>:27017</code></td><td><code>admin</code></td><td><code>admin123</code></td></tr>
-          <tr><td>PostgreSQL</td><td><code>:5432</code></td><td><code>admin</code></td><td><code>admin123</code></td></tr>
-          <tr><td>RabbitMQ UI</td><td><a href="http://localhost:15672" target="_blank" rel="noopener" style="color:var(--accent);"><code>:15672</code></a></td><td><code>datamaster</code></td><td><code>datamaster</code></td></tr>
+<tr><td>Airflow</td><td><a href="http://localhost:8085" target="_blank" rel="noopener" style="color:var(--accent);"><code>:8085</code></a></td><td><code>admin</code></td><td><code>admin</code></td></tr>
         </tbody>
       </table>
-      <p class="creds-none" style="margin-top: 0.75rem;">API (:8080), Dashboard (:8501), Console (:3333), Spark UI (:18080), Prometheus (:9090) e email-worker health (:8090) não exigem login nesta demo. SMTP: configure no <code>.env</code> (ver <code>docs/online/FRAUD_EMAIL_RABBITMQ.md</code>).</p>
+      <p class="creds-none" style="margin-top: 0.75rem;">API (:8080), Dashboard (:8501), Console (:3333), Spark UI (:18080) e Prometheus (:9090) não exigem login. Núcleo DE: Airflow DAG <code>datamaster_e2e</code>.</p>
     </div>
 
     <section>
@@ -389,9 +388,8 @@ bash scripts/run_demo.sh</code></pre>
           <span class="step-num">4</span>
           <div>
             <strong>Postgres + Grafana (se volume antigo)</strong>
-            <pre><code>bash scripts/seed_postgres.sh
-docker compose up -d grafana</code></pre>
-            <p>Postgres: <code>transactions</code>, <code>fraud_alerts</code> · Grafana: pasta <strong>DataMaster</strong>.</p>
+            <pre><code>docker compose up -d grafana</code></pre>
+            <p>Grafana: pasta <strong>DataMaster</strong>.</p>
           </div>
         </div>
         <div class="step">
@@ -467,12 +465,12 @@ docker compose up -d grafana</code></pre>
     </section>
 
     <section>
-      <h2><i class="bi bi-envelope-exclamation"></i> Alertas (RabbitMQ)</h2>
+      <h2><i class="bi bi-envelope-exclamation"></i> Orquestração (Airflow)</h2>
       <div class="grid">
-        <a class="card" href="http://localhost:15672" target="_blank" rel="noopener">
+        <a class="card" href="http://localhost:8085" target="_blank" rel="noopener">
           <div class="card-icon data"><i class="bi bi-diagram-2"></i></div>
-          <h3>RabbitMQ</h3>
-          <span class="url">localhost:15672</span>
+          <h3>Airflow</h3>
+          <span class="url">localhost:8085</span>
           <span class="login">datamaster / datamaster</span>
           <p class="desc">Fila <code>fraud.alert.email</code> — API publica quando detecta fraude; worker envia e-mail.</p>
           <span class="arrow"><i class="bi bi-arrow-up-right"></i></span>
@@ -556,7 +554,7 @@ docker compose up -d grafana</code></pre>
         <a href="roteiro.html"><i class="bi bi-mic"></i> Cola verbal alternativa (roteiro.html)</a>
       </div>
       <p style="color:var(--muted);font-size:0.88rem;margin-top:0.75rem;">
-        <strong>Tour de componentes</strong> (mostrar RabbitMQ, Kafka, Grafana, Mongo…):
+        <strong>Tour de componentes</strong> (mostrar Airflow, Kafka, Grafana, Mongo…):
         <code>docs/operacao/ROTEIRO_TOUR_COMPONENTES.md</code> ·
         <code>bash scripts/status-stack.sh</code>
       </p>

@@ -13,7 +13,8 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Stack minima AWS (DataMaster) — expanda com S3, MSK, ECS/EKS, etc.
+# Stack minima AWS — lake S3 (paths Medallion).
+# Kafka e MongoDB sobem iguais ao docker-compose (containers ECS/EKS), não DocumentDB/Dynamo/Kinesis.
 resource "aws_s3_bucket" "datamaster_lake" {
   bucket = var.lake_bucket_name
 

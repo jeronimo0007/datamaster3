@@ -1,18 +1,9 @@
-# Copie para terraform.tfvars e preencha a senha do Postgres.
-# cp terraform.tfvars.example terraform.tfvars
-# No GitHub Actions a senha vem do secret TF_VAR_db_admin_password.
-
-location             = "brazilsouth"
 project_name         = "fraud-apresentacao"
 resource_group_name  = "rg-fraud-apresentacao"
+location             = "brazilsouth"
 name_suffix          = "banca"
+mongo_admin_password = "admin123ChangeMe"
 
-db_admin_username = "fraudadmin"
-db_admin_password = "ALTERE_SENHA_FORTE_AQUI"
-
-# Stack completa (Databricks + Synapse + Azure ML + EH + ADLS + API + Cosmos + PG + Monitor)
-enable_analytics_stack           = true
-analytics_high_cost_acknowledged = true
-
-# A imagem da API é publicada automaticamente pelo workflow (build api-java → ACR).
-# api_container_image = "meuacr.azurecr.io/fraud-api:apresentacao"
+# Databricks/Synapse/ML — desligado por padrão (custo)
+enable_analytics_stack            = false
+analytics_high_cost_acknowledged  = false

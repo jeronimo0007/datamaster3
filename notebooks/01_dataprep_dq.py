@@ -1,12 +1,12 @@
 # Databricks Notebook: Data Preparation and Data Quality
-# Azure Databricks (Equivalente AWS: EMR / Glue Spark)
+# Spark / Databricks — mesmo motor na nuvem
 #
 # ARQUITETURA MEDALHAO (este notebook)
 #   bronze/transactions  — landing (ex-raw): leitura inicial, DQ bruta
 #   silver/transactions  — limpo + enriquecido (ex-processed)
 #   gold/transactions_ml — features para ML / consumo certo (ex-curated)
 #
-# PADRAO LAMBDA (fala para banca): speed layer = Event Hub/Kafka + API;
+# Streaming = Kafka + API; batch = Medallion Spark.
 #   batch layer = este pipeline Spark no lake. Kappa = tudo via replay de log.
 
 # Configuração

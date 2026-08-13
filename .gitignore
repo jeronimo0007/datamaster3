@@ -1,43 +1,54 @@
-# Python
-venv/
-.venv/
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
 
+!*.tfvars.example
+# Airflow local
+# Airflow metadata (SQLite)
+# Artefatos de pipeline gerados na demo
 # Env / secrets locais
-.env
-.env.local
-*.pem
-
-# Java
-api-java/target/
-*.class
-
-# Node
-node_modules/
-dist/
-build/
-
 # IDE / OS
-.DS_Store
-.idea/
-.vscode/
-*.swp
-*~
-
+# Java
 # Jupyter
-.ipynb_checkpoints/
-
+# Material pessoal de estudo / banca (não versionar)
+# Node
+# Python
 # Terraform
 **/.terraform/
+*.class
+*.egg-info/
+*.pem
+*.py[cod]
+*.swp
+*.tfplan
 *.tfstate
 *.tfstate.*
-*.tfplan
-tfplan
-crash.log
-crash.*.log
 *.tfvars
-!*.tfvars.example
+*~
+.DS_Store
+.env
+.env.local
+.idea/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.venv/
+.vscode/
+__pycache__/
+airflow/data/
+airflow/logs/
+airflow/plugins/__pycache__/
+api-java/target/
+banca/
+build/
+crash.*.log
+crash.log
+data/lake/bronze/
+data/lake/gold/
+data/lake/reports/
+data/lake/silver/
+data/landing/run=*/
+data/transactions.json
+dist/
+docs/estudos/
+node_modules/
+sql/
+tfplan
+venv/

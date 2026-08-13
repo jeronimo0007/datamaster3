@@ -7,32 +7,24 @@ output "storage_account_name" {
 }
 
 output "datalake_containers" {
-  value = ["bronze", "silver", "gold", "raw", "processed", "curated"]
+  value = ["landing", "bronze", "silver", "gold"]
 }
 
-output "event_hub_namespace" {
-  value = azurerm_eventhub_namespace.main.name
+output "mongodb_fqdn" {
+  value = azurerm_container_group.mongo.fqdn
 }
 
-output "event_hub_name" {
-  value = azurerm_eventhub.transactions.name
-}
-
-output "event_hub_connection_string" {
-  value     = azurerm_eventhub_authorization_rule.send_listen.primary_connection_string
+output "mongodb_uri" {
+  value     = local.mongodb_uri
   sensitive = true
 }
 
-output "cosmos_db_endpoint" {
-  value = azurerm_cosmosdb_account.main.endpoint
+output "kafka_bootstrap" {
+  value = local.kafka_bootstrap
 }
 
 output "key_vault_uri" {
   value = azurerm_key_vault.main.vault_uri
-}
-
-output "postgresql_fqdn" {
-  value = azurerm_postgresql_flexible_server.main.fqdn
 }
 
 output "log_analytics_workspace_id" {
@@ -52,16 +44,8 @@ output "container_app_api_fqdn" {
   value = try(azurerm_container_app.api.ingress[0].fqdn, try(azurerm_container_app.api.latest_revision_fqdn, ""))
 }
 
-output "container_app_api_name" {
-  value = azurerm_container_app.api.name
-}
-
 output "container_app_api_url" {
   value = "https://${try(azurerm_container_app.api.ingress[0].fqdn, azurerm_container_app.api.latest_revision_fqdn)}"
-}
-
-output "cosmos_mongo_account_name" {
-  value = azurerm_cosmosdb_account.mongo.name
 }
 
 output "name_suffix" {
@@ -78,14 +62,6 @@ output "databricks_workspace_url" {
 
 output "synapse_workspace_name" {
   value = var.enable_analytics_stack ? azurerm_synapse_workspace.main[0].name : null
-}
-
-output "synapse_studio_url" {
-  value = var.enable_analytics_stack ? "https://web.azuresynapse.net" : null
-}
-
-output "machine_learning_workspace_id" {
-  value = var.enable_analytics_stack ? azurerm_machine_learning_workspace.main[0].id : null
 }
 
 output "machine_learning_workspace_name" {

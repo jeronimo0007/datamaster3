@@ -1,17 +1,14 @@
 # Deploy
 
-VPS homelab (Kubernetes) e integração contínua.
+Ambientes: **Docker local**, **Azure**, **AWS** (preparado). Sem VPS/k3s.
 
 | Documento | Conteúdo |
 |-----------|----------|
-| [DEPLOY_K8S.md](DEPLOY_K8S.md) | **Principal** — k3s, NodePorts, stack completa |
-| [DEPLOY_VPS.md](DEPLOY_VPS.md) | Resumo VPS + branch `vps` |
-| [CI_CD_BRANCHES.md](CI_CD_BRANCHES.md) | Deploy por branch (`vps`, `azure`, `aws`) |
-| [APRESENTACAO_AZURE.md](APRESENTACAO_AZURE.md) | Roteiro banca: Actions sobe Azure + API automaticamente |
+| [APRESENTACAO_AZURE.md](APRESENTACAO_AZURE.md) | Terraform Azure + Actions |
+| [../cloud/TUTORIAL_AZURE_TERRAFORM_E_GITHUB_ACTIONS.md](../cloud/TUTORIAL_AZURE_TERRAFORM_E_GITHUB_ACTIONS.md) | Tutorial Azure |
+| [../../infrastructure/terraform/aws/README.md](../../infrastructure/terraform/aws/README.md) | AWS preparado (mesma stack) |
+| [../../infrastructure/MAPA_LOCAL_AZURE.md](../../infrastructure/MAPA_LOCAL_AZURE.md) | Tabela Local \| Azure \| AWS |
 
-| [GITHUB_ACTIONS_TAILSCALE.md](GITHUB_ACTIONS_TAILSCALE.md) | Actions → VPS via Tailscale |
-| [TAILSCALE_ACL_PASSO_A_PASSO.md](TAILSCALE_ACL_PASSO_A_PASSO.md) | ACL e tags |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Referência legada |
-| [DEPLOY_KUBERNETES_SERVIDOR.md](DEPLOY_KUBERNETES_SERVIDOR.md) | Atalho para os guias acima |
+Stack obrigatória em todos: **Kafka, MongoDB, Airflow, Spark, object storage (MinIO/ADLS/S3)**.
 
-[← Índice geral](../README.md)
+[← Índice](../README.md)

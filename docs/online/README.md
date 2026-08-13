@@ -1,31 +1,22 @@
-# Domínio: Online
+# Domínio: Online (serving)
 
-API de scoring, interfaces, mensageria e notificações em tempo quase real.
+A API e o Kafka são a **camada de serving** da demo — o núcleo do projeto é o pipeline Medallion + Airflow (ver [README](../../readme.md)).
+
+## Serviços
+
+| Serviço | Porta | Papel |
+|---------|-------|--------|
+| api | 8080 | Scoring online, consulta perfis Mongo |
+| dashboard | 8501 | Streamlit |
+| data-console | 3333 | Simulador |
+| kafka | 9092 | Eventos `transaction-analyzed` (mesmo Kafka na Azure) |
 
 ## Documentos
 
 | Documento | Conteúdo |
 |-----------|----------|
-| [FRAUD_EMAIL_RABBITMQ.md](FRAUD_EMAIL_RABBITMQ.md) | **RabbitMQ + email-worker** |
-| [../operacao/SERVICOS_DOCKER.md](../operacao/SERVICOS_DOCKER.md) | API, dashboard, Kafka, RabbitMQ |
-| [../operacao/QUICK_START.md](../operacao/QUICK_START.md) | Swagger, analyze, batch |
-| [../arquitetura/ARCHITECTURE.md](../arquitetura/ARCHITECTURE.md) | Contrato REST |
+| [../operacao/SERVICOS_DOCKER.md](../operacao/SERVICOS_DOCKER.md) | Stack completa |
+| [../operacao/QUICK_START.md](../operacao/QUICK_START.md) | Analyze / Swagger |
+| [../../src/data_ingestion/kafka_client.py](../../src/data_ingestion/kafka_client.py) | Cliente Kafka unificado local/Azure |
 
-## Serviços (Compose)
-
-| Serviço | Porta | Papel |
-|---------|-------|--------|
-| api | 8080 | Scoring, alertas, LGPD |
-| dashboard | 8501 | Streamlit |
-| data-console | 3333 | Simulador de carga |
-| kafka | 9092 | Streaming (narrativa Event Hubs) |
-| rabbitmq | 15672 (UI) | Fila `fraud.alert.email` |
-| email-worker | 8090 | SMTP assíncrono |
-
-## Diagramas
-
-[../arquitetura/datamaster-02-online.drawio](../arquitetura/datamaster-02-online.drawio)
-
-Apresentação: `portal/banca.html` · checklist **T4c** (RabbitMQ).
-
-[← Índice geral](../README.md)
+[← Índice](../README.md)

@@ -635,6 +635,8 @@
   <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
 </head>
 <body>
+<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Atualizado: foco engenharia de dados · Airflow Medallion · Azure only · sem RabbitMQ/Lambda/AWS. Ver README e Airflow :8085</div>
+
   <div class="progress-top" aria-hidden="true"><div class="progress-top__fill" id="progress-fill"></div></div>
 
   <div class="deck" id="deck">
@@ -685,7 +687,7 @@
         <div class="logo-row"><i class="bi bi-bank2"></i> Plataforma de dados · Azure / AWS · Banca</div>
         <p class="eyebrow">Apresentação</p>
         <h1 class="slide-title">Sistema de detecção de <em>fraudes bancárias</em></h1>
-        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três frentes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>VPS homelab</strong> (Kubernetes, mesma stack) · <strong>Azure</strong> (<code>terraform/apresentacao</code>, mesmo desenho). <strong>AWS</strong> entra como <strong>mapa multicloud</strong> (equivalências), sem deploy.</p>
+        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três frentes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>VPS homelab</strong> (Kubernetes, mesma stack) · <strong>Azure</strong> (<code>terraform/apresentacao</code>, mesmo desenho). <strong>AWS</strong> entra como <strong>mapa Local ↔ Azure</strong> (equivalências), Cloud única: Azure.</p>
         <div class="closing-flow" id="closing-flow" aria-label="Pipeline completo em movimento — da fonte ao alerta">
           <p class="closing-flow__cap">Visão do fluxo · do dado bruto ao alerta</p>
           <svg viewBox="0 0 920 210" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -711,8 +713,8 @@
             <text class="node-label" x="65" y="98">Fontes</text>
             <text class="node-hint" x="65" y="112">APIs · batch · simulador</text>
             <rect class="node-box" x="126" y="76" width="120" height="48" rx="10"/>
-            <text class="node-label" x="186" y="98">Event Hubs</text>
-            <text class="node-hint" x="186" y="112">Kinesis · MSK</text>
+            <text class="node-label" x="186" y="98">Kafka</text>
+            <text class="node-hint" x="186" y="112">Kafka · MSK</text>
             <rect class="node-box" x="246" y="76" width="130" height="48" rx="10"/>
             <text class="node-label" x="311" y="98">Databricks</text>
             <text class="node-hint" x="311" y="112">EMR · Glue Spark</text>
@@ -744,7 +746,7 @@
           <div class="card-panel" style="margin:0;border-color:rgba(34,211,238,0.35);">
             <strong style="color:var(--accent);font-size:0.82rem;">① Local — demo ao vivo</strong>
             <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
-              <li><code>docker compose up -d --build</code> — API, dashboard, console, Spark, Kafka, <strong>RabbitMQ</strong>, Mongo, Grafana…</li>
+              <li><code>docker compose up -d --build</code> — API, dashboard, console, Spark, Kafka, <strong>Kafka</strong>, Mongo, Grafana…</li>
               <li>Portal <a href="http://localhost:8880" target="_blank" rel="noopener" style="color:var(--accent);">:8880</a> · trilha T1–T12 no slide de demo</li>
               <li><strong>É o que a banca vê funcionando</strong> na mesa</li>
             </ul>
@@ -753,7 +755,7 @@
             <strong style="color:var(--accent-2);font-size:0.82rem;">② VPS — stack completa (k3s)</strong>
             <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
               <li>Branch <code>vps</code> → GitHub Actions ou <code>bash scripts/deploy-kubernetes-server.sh</code></li>
-              <li>Mesmos blocos: API, portal, dashboard, Spark, Kafka, RabbitMQ, email-worker, observabilidade</li>
+              <li>Mesmos blocos: API, portal, dashboard, Spark, Kafka, Kafka, serving API, observabilidade</li>
               <li>Mostrar NodePorts / <code>kubectl get pods -n datamaster</code> (provisionamento em andamento ou pronto)</li>
             </ul>
           </div>
@@ -761,13 +763,13 @@
         <div class="card-panel" style="margin-top:0.75rem;border-color:rgba(167,139,250,0.35);">
           <strong style="font-size:0.82rem;">③ Azure — stack de apresentação (Terraform)</strong>
           <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
-            <li><code>cd infrastructure/terraform/apresentacao && terraform apply</code> — ADLS Medallion, Event Hubs, Cosmos, Postgres, Key Vault, Monitor, Container Apps (API)</li>
+            <li><code>cd infrastructure/terraform/apresentacao && terraform apply</code> — ADLS Medallion, Kafka, MongoDB, Postgres, Key Vault, Monitor, Container Apps (API)</li>
             <li>Stack analítica: <strong>Databricks + Synapse + Azure ML</strong> (<code>enable_analytics_stack = true</code> por padrão no Terraform)</li>
             <li>Disparar <strong>no início</strong> da apresentação; mostrar portal Azure / outputs / API FQDN enquanto roda a demo local</li>
           </ul>
         </div>
         <div class="diagram" style="margin-top:0.65rem;font-size:0.78rem;">
-          <strong>AWS:</strong> não subo na hora — uso o slide de <strong>mapa multicloud</strong> (Kinesis, S3, SageMaker…) para provar que o desenho não é preso a um vendor.
+          <strong>AWS:</strong> não subo na hora — uso o slide de <strong>mapa Local ↔ Azure</strong> (Kafka, S3, SageMaker…) para provar que o desenho não é preso a um vendor.
           · Doc: <code>docs/deploy/</code> · <code>bash scripts/pre-banca-paralelo.sh</code>
         </div>
       </div>
@@ -886,19 +888,19 @@
           Ingestão → lake Medallion → governança → ML → API → consumo. Na mesa, o <strong>mesmo desenho</strong> roda no Docker.
         </p>
         <div class="card-panel arch-diagram-viz">
-          <p class="batch-medallion-cap">Batch + online · visão geral (Lambda)</p>
+          <p class="batch-medallion-cap">Batch + online · visão geral (Medallion)</p>
           <img src="datamaster-00-visao-geral.svg" alt="Visão geral: camada batch (lake, Spark) e camada online (API, dashboard, alertas)"/>
         </div>
         <div class="two-col" style="gap:0.65rem;">
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
-            <li><strong>① Ingestão:</strong> Event Hubs (stream) + Data Factory (batch) — local: Kafka + console :3333.</li>
+            <li><strong>① Ingestão:</strong> Kafka (stream) + Data Factory (batch) — local: Kafka + console :3333.</li>
             <li><strong>② Lake:</strong> ADLS Bronze · Silver · Gold — local: <code>data/lake/</code> + MinIO.</li>
             <li><strong>③ Processamento:</strong> Databricks Spark — local: cluster Spark + Jupyter.</li>
-            <li><strong>④ Serving:</strong> API + Cosmos (perfis) — local: API :8080 + MongoDB <code>user_profiles</code>.</li>
+            <li><strong>④ Serving:</strong> API + MongoDB (perfis) — local: API :8080 + MongoDB <code>user_profiles</code>.</li>
           </ul>
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
             <li><strong>⑤ Consumo:</strong> Power BI / dashboard — local: Streamlit :8501.</li>
-            <li><strong>⑥ Alertas:</strong> Service Bus + Function — local: RabbitMQ + email-worker.</li>
+            <li><strong>⑥ Alertas:</strong> Kafka + Function — local: Kafka (eventos de negócio).</li>
             <li><strong>⑦ Governança:</strong> Purview + Key Vault — local: DQ + <code>governanca.yaml</code>.</li>
             <li><strong>⑧ Observabilidade:</strong> Monitor + App Insights — local: Prometheus + Grafana.</li>
           </ul>
@@ -906,7 +908,7 @@
         <div class="pill-row" style="margin-top:0.65rem;">
           <span class="pill">PNG no repositório</span>
           <span class="pill">Local = Azure (mesmo desenho)</span>
-          <span class="pill">AWS = parênteses na fala</span>
+          <span class="pill">Azure = cloud única</span>
         </div>
       </div>
     </section>
@@ -918,8 +920,8 @@
         <h2 class="slide-heading">Da fonte ao barramento</h2>
         <ul class="clean card-panel">
           <li><strong>Por quê:</strong> fontes heterogêneas quebram o modelo se o schema do core for acoplado — preciso de <em>contrato canônico</em> + adapters.</li>
-          <li><strong>Scripts Python (multi-fonte):</strong> <code>generate_data.py</code> + console :3333 simulam o core; <code>transaction_adapters.py</code> normaliza simulador, fila (<strong>Event Hubs</strong> / <strong>Kinesis</strong>) ou CSV para o dicionário do modelo.</li>
-          <li><strong>Event Hub Producer:</strong> publicação com metadados e particionamento — AWS: <strong>Kinesis</strong> / <strong>MSK</strong>. <em>Repo:</em> <code>event_hub_producer.py</code>.</li>
+          <li><strong>Scripts Python (multi-fonte):</strong> <code>generate_data.py</code> + console :3333 simulam o core; <code>transaction_adapters.py</code> normaliza simulador, fila (<strong>Kafka</strong> / <strong>Kafka</strong>) ou CSV para o dicionário do modelo.</li>
+          <li><strong>Kafka Producer:</strong> publicação com metadados e particionamento — AWS: <strong>Kafka</strong> / <strong>MSK</strong>. <em>Repo:</em> <code>event_hub_producer.py</code>.</li>
           <li><strong>ADF / Glue:</strong> orquestra cópia e landing em <strong>ADLS</strong> / <strong>S3</strong> (secrets no Key Vault / Secrets Manager). Trade-off: schema registry (Avro) = mais governança, overhead no POC.</li>
         </ul>
       </div>
@@ -929,12 +931,12 @@
     <section class="slide slide--accent" data-slide="6">
       <div class="slide__inner">
         <p class="topic-num"><span class="mark">✅</span> Etapa 2 · Ingestão de dados</p>
-        <h2 class="slide-heading">Streaming, batch e Lambda</h2>
+        <h2 class="slide-heading">Streaming Kafka e batch Medallion</h2>
         <ul class="clean card-panel">
           <li><strong>Por quê dois modos:</strong> stream resolve latência (&lt;2s); batch resolve histórico, reprocessamento e <em>perfis</em>. Só batch perde tempo real; só stream (Kappa) encarece features históricas.</li>
-          <li><strong>Streaming — Event Hubs</strong> <strong>(Kinesis / MSK)</strong> · local <strong>Kafka</strong>: após o <code>/analyze</code>, a API publica o fato <code>transaction-analyzed</code> de forma <em>assíncrona</em> (categoria, CPF, <code>card_last4</code>) — o HTTP não espera o broker.</li>
-          <li><strong>Batch — ADF / Glue</strong> + <code>batch_dataprep_mongo.py</code>: agrega histórico → <strong>Cosmos/Mongo</strong> para a API consultar online.</li>
-          <li><strong>Lambda:</strong> <em>speed</em> (API + evento Kafka) + <em>batch</em> (lake + perfis). Kafka é barramento/replay — o histórico definitivo para Negócios fica no lake/Gold (não retenção infinita no broker).</li>
+          <li><strong>Streaming — Kafka</strong> <strong>(Kafka / MSK)</strong> · local <strong>Kafka</strong>: após o <code>/analyze</code>, a API publica o fato <code>transaction-analyzed</code> de forma <em>assíncrona</em> (categoria, CPF, <code>card_last4</code>) — o HTTP não espera o broker.</li>
+          <li><strong>Batch — ADF / Glue</strong> + <code>batch_dataprep_mongo.py</code>: agrega histórico → <strong>MongoDB/Mongo</strong> para a API consultar online.</li>
+          <li><strong>Medallion + Kafka:</strong> <em>speed</em> (API + evento Kafka) + <em>batch</em> (lake + perfis). Kafka é barramento/replay — o histórico definitivo para Negócios fica no lake/Gold (não retenção infinita no broker).</li>
         </ul>
       </div>
     </section>
@@ -949,7 +951,7 @@
         </p>
         <div class="card-panel arch-diagram-viz">
           <p class="batch-medallion-cap">Private Network · microserviços · caminho demo em verde</p>
-          <img src="datamaster-02-online-gateway.svg" alt="Arquitetura online: clientes, API Gateway não implementado, API Java, MongoDB, RabbitMQ e dashboard"/>
+          <img src="datamaster-02-online-gateway.svg" alt="Arquitetura online: clientes, API Gateway não implementado, API Java, MongoDB, Kafka e dashboard"/>
         </div>
         <div class="two-col" style="gap:0.65rem;margin-top:0.65rem;">
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
@@ -982,12 +984,12 @@
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
             <li><strong>① Ingest:</strong> histórico simulado → <code>generate_data.py</code> / console :3333 (ADF · Glue na nuvem).</li>
             <li><strong>②–③ Store + Process:</strong> Spark <code>spark_local_pipeline.py</code> — Bronze (JSON) → Silver (DQ) → Gold (features ML) em <code>data/lake/</code>.</li>
-            <li><strong>④ Perfis:</strong> <code>batch_dataprep_mongo.py</code> agrega por <code>user_id</code> → MongoDB <code>user_profiles</code> (Cosmos na Azure).</li>
+            <li><strong>④ Perfis:</strong> <code>batch_dataprep_mongo.py</code> agrega por <code>user_id</code> → MongoDB <code>user_profiles</code> (MongoDB na Azure).</li>
             <li><strong>⑤ Serve:</strong> API :8080 consulta perfil no <code>/analyze</code>; dashboard :8501 consome scores e fila de revisão.</li>
           </ul>
           <ul class="clean card-panel" style="margin:0;font-size:0.82rem;">
             <li><strong>⑥ Governança:</strong> <code>data/lake/reports/dq_latest.json</code>, Prometheus/Grafana, Key Vault, Purview (Terraform <code>apresentacao/</code>).</li>
-            <li><strong>Lambda:</strong> este slide = camada <em>batch</em>; streaming + API = camada <em>speed</em> (slide ingestão).</li>
+            <li><strong>Medallion + Kafka:</strong> este slide = camada <em>batch</em>; streaming + API = camada <em>speed</em> (slide ingestão).</li>
             <li><strong>Artefato:</strong> <code>docs/arquitetura/datamaster-01-batch-medallion.drawio</code> · PNG: <code>datamaster-01-batch-medallion.png</code>.</li>
             <li><strong>Prova na mesa:</strong> pipeline Medallion materializado em <code>data/lake/</code> (bronze/silver/gold).</li>
           </ul>
@@ -1013,8 +1015,8 @@
             <li><strong>DW Kimball:</strong> Synapse / Redshift — fato + dimensões para BI (narrativa).</li>
           </ul>
           <ul class="clean card-panel" style="margin:0;">
-            <li><strong>Mongo / Cosmos:</strong> <code>user_profiles</code> para <code>/analyze</code> — <em>scoring não usa Postgres</em>.</li>
-            <li><strong>PostgreSQL / RDS:</strong> schema OLTP (transação, alerta, auditoria) na demo.</li>
+            <li><strong>Mongo / MongoDB:</strong> <code>user_profiles</code> para <code>/analyze</code> — <em>scoring não usa Postgres</em>.</li>
+            <li><strong>MongoDB (perfis):</strong> schema OLTP (transação, alerta, auditoria) na demo.</li>
             <li><strong>Trade-off:</strong> tudo no Postgres = simples e fraco em ML; tudo no Mongo = ruim para SQL dimensional.</li>
           </ul>
         </div>
@@ -1026,7 +1028,7 @@
       <div class="slide__inner" style="max-width:min(1080px,100%);">
         <p class="topic-num"><span class="mark">✅</span> Camada batch · perfis para serving online</p>
         <h2 class="slide-heading">Dataprep histórico → MongoDB → API</h2>
-        <p class="sub" style="margin:-0.35rem 0 0.75rem;font-size:0.88rem;color:var(--muted);">Dois braços da arquitetura Lambda: <strong>batch</strong> materializa comportamento histórico; <strong>speed</strong> consulta na análise em tempo real.</p>
+        <p class="sub" style="margin:-0.35rem 0 0.75rem;font-size:0.88rem;color:var(--muted);">Dois braços da arquitetura Medallion: <strong>batch</strong> materializa comportamento histórico; <strong>speed</strong> consulta na análise em tempo real.</p>
         <div class="card-panel batch-flow-viz" style="padding:0.75rem 1rem;margin-bottom:0.85rem;">
           <svg viewBox="0 0 920 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fluxo batch MongoDB API" style="width:100%;height:auto;display:block;">
             <defs>
@@ -1043,7 +1045,7 @@
             <rect class="node-box" x="300" y="28" width="118" height="64" rx="10" style="stroke:#a78bfa"/>
             <text class="node-label" x="359" y="52" text-anchor="middle">MongoDB</text>
             <text class="node-hint" x="359" y="68" text-anchor="middle">user_profiles</text>
-            <text class="node-hint" x="359" y="82" text-anchor="middle">Cosmos (Azure)</text>
+            <text class="node-hint" x="359" y="82" text-anchor="middle">MongoDB (Azure)</text>
             <rect class="node-box" x="440" y="36" width="118" height="48" rx="10"/>
             <text class="node-label" x="499" y="58" text-anchor="middle">API Java</text>
             <text class="node-hint" x="499" y="72" text-anchor="middle">POST /analyze</text>
@@ -1064,9 +1066,9 @@
           <ul class="clean card-panel" style="margin:0;">
             <li><strong>Entrada batch:</strong> <code>data/transactions.json</code> (simula exportação histórica / landing Bronze).</li>
             <li><strong>Dataprep:</strong> <code>scripts/batch_dataprep_mongo.py</code> — média, desvio, P95, categorias típicas, % internacional.</li>
-            <li><strong>Serving store:</strong> MongoDB <code>user_profiles</code> — na Azure, <strong>Cosmos DB</strong> (API MongoDB) com mesma ideia.</li>
+            <li><strong>Serving store:</strong> MongoDB <code>user_profiles</code> — na Azure, <strong>MongoDB</strong> (MongoDB) com mesma ideia.</li>
             <li><strong>Online:</strong> API consulta perfil e aplica <code>profile_anomaly_boost</code> ao score de fraude.</li>
-            <li><strong>Alerta assíncrono:</strong> se <code>is_fraud</code>, API publica em <strong>RabbitMQ</strong> (<code>fraud.alert.email</code>); <strong>email-worker</strong> envia SMTP sem bloquear o HTTP — doc <code>docs/online/FRAUD_EMAIL_RABBITMQ.md</code>.</li>
+            <li><strong>Alerta assíncrono:</strong> se <code>is_fraud</code>, API publica em <strong>Kafka</strong> (<code>fraud.alert.email</code>); <strong>serving API</strong> envia SMTP sem bloquear o HTTP — doc <code>docs/online/VISAO_GESTAO.md</code>.</li>
           </ul>
           <ul class="clean card-panel" style="margin:0;">
             <li><strong>Spark Medallion</strong> (paralelo): lake Bronze→Silver→Gold para analítico e retreino.</li>
@@ -1096,7 +1098,7 @@
     <section class="slide slide--accent" data-slide="9">
       <div class="slide__inner">
         <p class="topic-num"><span class="mark">✅</span> Etapa 5 · Segurança de dados</p>
-        <h2 class="slide-heading">Defesa em profundidade: Azure <span style="color:var(--muted);font-size:0.85em;">(AWS entre parênteses)</span></h2>
+        <h2 class="slide-heading">Defesa em profundidade: Azure <span style="color:var(--muted);font-size:0.85em;">(Azure)</span></h2>
         <ul class="clean card-panel">
           <li><strong>Por quê defesa em profundidade:</strong> PII + decisão sensível — credencial no código ou storage aberto = incidente.</li>
           <li><strong>Crypto + Key Vault / KMS:</strong> TLS e CMK; secrets <em>fora do código</em>, com rotação e identidade gerenciada (IAM roles).</li>
@@ -1130,7 +1132,7 @@
         <ul class="clean card-panel">
           <li><strong>Por quê Medallion:</strong> qualidade progressiva + Bronze intacto para reprocessar — engenharia do lake (Databricks / EMR + Delta).</li>
           <li><strong>Por quê Kimball:</strong> BI pensa em fato + dimensões — <strong>Synapse / Redshift</strong>. Medallion ≠ Kimball (pipeline vs modelo dimensional).</li>
-          <li><strong>Features online:</strong> <code>user_profiles</code> no <strong>Mongo / Cosmos</strong> — API não faz full scan no lake a cada tx. Gold = retreino; perfil = <code>/analyze</code>.</li>
+          <li><strong>Features online:</strong> <code>user_profiles</code> no <strong>Mongo / MongoDB</strong> — API não faz full scan no lake a cada tx. Gold = retreino; perfil = <code>/analyze</code>.</li>
           <li><strong>Governança:</strong> <code>governanca.yaml</code> + <code>/data-quality/report</code> + notebook DQ.</li>
         </ul>
       </div>
@@ -1143,7 +1145,7 @@
         <h2 class="slide-heading">Pronto para crescimento</h2>
         <ul class="clean card-panel">
           <li><strong>Por quê por camada:</strong> réplica sem partição certa não resolve — stream, batch, serving e API têm alavancas diferentes.</li>
-          <li><strong>Alavancas:</strong> partições Event Hubs/Kinesis · workers Databricks/EMR · RU/s Cosmos/DynamoDB · réplicas AKS/ECS · Redis para hot keys.</li>
+          <li><strong>Alavancas:</strong> partições Kafka/Kafka · workers Databricks/EMR · RU/s MongoDB/MongoDB · réplicas AKS/ECS · Redis para hot keys.</li>
           <li><strong>Particionamento:</strong> lake por data/canal; partition key sem hotspot; consumer groups paralelos.</li>
           <li><strong>Meta 10M+ tx/dia:</strong> capacidade-<em>alvo do desenho</em> (FinOps: custo/1M tx). Na mesa mostro o caminho e onde puxo a alavanca — não um load test de produção.</li>
         </ul>
@@ -1191,7 +1193,7 @@
               <li><strong>T5</strong> — <code>POST …/analyze</code> com <code>user_id</code> (perfil histórico)</li>
               <li><strong>T6</strong> — Analyze suspeito + <code>anomaly_reasons</code> no JSON</li>
               <li><strong>T7</strong> — <code>POST …/transactions/batch</code> (carga na API)</li>
-              <li><strong>T4c</strong> — <a href="http://localhost:15672" target="_blank" rel="noopener" style="color:var(--accent);">RabbitMQ :15672</a> + e-mail assíncrono (fraude → fila → worker)</li>
+              <li><strong>T4c</strong> — <a href="http://localhost:8085" target="_blank" rel="noopener" style="color:var(--accent);">Kafka :8085</a> + e-mail assíncrono (fraude → fila → worker)</li>
             </ul>
           </div>
           <div class="card-panel" style="margin:0;">
@@ -1215,19 +1217,19 @@ curl -s -X POST http://localhost:8080/api/v1/transactions/analyze \
     <!-- 13 Multi-cloud -->
     <section class="slide slide--accent" data-slide="14">
       <div class="slide__inner">
-        <h2 class="slide-heading">Mapa rápido: Azure <span style="color:var(--muted);font-weight:500;">(AWS entre parênteses)</span> <span class="badge-time">referência</span></h2>
+        <h2 class="slide-heading">Mapa rápido: Azure <span style="color:var(--muted);font-weight:500;">(Azure)</span> <span class="badge-time">referência</span></h2>
         <div class="card-panel" style="padding:0; overflow:auto;">
           <table class="data">
-            <thead><tr><th>Função</th><th>Azure (equivalente AWS)</th></tr></thead>
+            <thead><tr><th>Função</th><th>Azure / AWS (mesma stack)</th></tr></thead>
             <tbody>
-              <tr><td>Streaming ingestão</td><td>Event Hubs (Kinesis Data Streams / MSK)</td></tr>
-              <tr><td>Alerta assíncrono (e-mail)</td><td>Service Bus + Function (SQS + Lambda) — local: RabbitMQ + worker</td></tr>
+              <tr><td>Streaming ingestão</td><td>Kafka (Kafka / MSK)</td></tr>
+              <tr><td>Alerta assíncrono (e-mail)</td><td>Kafka + Function (SQS + Lambda) — local: Kafka + worker</td></tr>
               <tr><td>Lake objeto</td><td>ADLS Gen2 (S3)</td></tr>
               <tr><td>Governança / catálogo</td><td>Purview (Lake Formation + Glue Catalog)</td></tr>
               <tr><td>Orquestração ETL</td><td>Data Factory (Glue Workflow / Step Functions)</td></tr>
               <tr><td>Spark</td><td>Azure Databricks (EMR / Glue Spark)</td></tr>
               <tr><td>DW / SQL analítico</td><td>Synapse / Fabric (Redshift / Athena)</td></tr>
-              <tr><td>NoSQL wide-column</td><td>Cosmos DB (DynamoDB)</td></tr>
+              <tr><td>NoSQL wide-column</td><td>MongoDB</td></tr>
               <tr><td>ML treino &amp; deploy</td><td>Azure ML (SageMaker)</td></tr>
               <tr><td>Secrets</td><td>Key Vault (Secrets Manager / SSM / KMS)</td></tr>
               <tr><td>Métricas &amp; logs</td><td>Monitor / Log Analytics (CloudWatch / Logs Insights)</td></tr>

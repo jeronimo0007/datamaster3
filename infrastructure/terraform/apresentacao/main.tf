@@ -28,7 +28,6 @@ locals {
     var.storage_account_name,
     substr("${local.alnum}st${local.suffix}", 0, 24)
   )
-  event_hub_namespace = coalesce(var.event_hub_namespace, "${var.project_name}-eh-${local.suffix}")
   key_vault_name = coalesce(
     var.key_vault_name,
     substr("${local.alnum}kv${local.suffix}", 0, 24)
@@ -38,12 +37,12 @@ locals {
     var.api_container_image,
     "mcr.microsoft.com/k8se/quickstart:latest"
   )
-  # Cosmos Mongo connection string precisa do database no path para o Spring Data.
-  mongodb_uri = replace(
-    azurerm_cosmosdb_account.mongo.primary_mongodb_connection_string,
-    "/?",
-    "/fraud_detection?"
-  )
+  # MongoDB real (ACI) — mesma imagem do docker-compose, não Cosmos
+  mongodb_uri = "mongodb://admin:${var.mongo_admin_password}@${azurerm_container_group.mongo.fqdn}:27017/fraud_detection?authSource=admin"
+  # Kafka real (ACI) — mesmo broker Kafka do local, não Event Hubs
+  kafka_dns       = substr("${local.alnum}kafka${local.suffix}", 0, 63)
+  mongo_dns       = substr("${local.alnum}mongo${local.suffix}", 0, 63)
+  kafka_bootstrap = "${azurerm_container_group.kafka.fqdn}:9092"
 }
 
 data "azurerm_client_config" "current" {}
@@ -101,110 +100,75 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "curated" {
   storage_account_id = azurerm_storage_account.datalake.id
 }
 
-# --- Event Hubs (streaming) ---
-resource "azurerm_eventhub_namespace" "main" {
-  name                = local.event_hub_namespace
+resource "azurerm_storage_data_lake_gen2_filesystem" "landing" {
+  name               = "landing"
+  storage_account_id = azurerm_storage_account.datalake.id
+}
+
+# --- MongoDB (mesma imagem do compose — NÃO Cosmos/DocumentDB) ---
+resource "azurerm_container_group" "mongo" {
+  name                = "${var.project_name}-mongo-${local.suffix}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  sku                 = "Standard"
-  capacity            = 1
+  os_type             = "Linux"
+  ip_address_type     = "Public"
+  dns_name_label      = local.mongo_dns
+  restart_policy      = "Always"
 
-  tags = azurerm_resource_group.main.tags
-}
+  container {
+    name   = "mongodb"
+    image  = "mongo:6.0"
+    cpu    = "1"
+    memory = "1.5"
 
-resource "azurerm_eventhub" "transactions" {
-  name                = "transactions"
-  namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.main.name
-  partition_count     = 4
-  message_retention   = 1
-}
+    ports {
+      port     = 27017
+      protocol = "TCP"
+    }
 
-resource "azurerm_eventhub_authorization_rule" "send_listen" {
-  name                = "app-policy"
-  namespace_name      = azurerm_eventhub_namespace.main.name
-  resource_group_name = azurerm_resource_group.main.name
-  eventhub_name       = azurerm_eventhub.transactions.name
-  listen              = true
-  send                = true
-  manage              = false
-}
-
-# --- Cosmos DB ---
-resource "azurerm_cosmosdb_account" "main" {
-  name                = substr("${local.alnum}cosmos${local.suffix}", 0, 44)
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  offer_type          = "Standard"
-  kind                = "GlobalDocumentDB"
-
-  consistency_policy {
-    consistency_level = "Session"
-  }
-
-  geo_location {
-    location          = azurerm_resource_group.main.location
-    failover_priority = 0
+    environment_variables = {
+      MONGO_INITDB_ROOT_USERNAME = "admin"
+      MONGO_INITDB_ROOT_PASSWORD = var.mongo_admin_password
+    }
   }
 
   tags = azurerm_resource_group.main.tags
 }
 
-resource "azurerm_cosmosdb_sql_database" "main" {
-  name                = "fraud-detection"
-  resource_group_name = azurerm_resource_group.main.name
-  account_name        = azurerm_cosmosdb_account.main.name
-}
-
-resource "azurerm_cosmosdb_sql_container" "transactions" {
-  name                  = "transactions"
-  resource_group_name   = azurerm_resource_group.main.name
-  account_name          = azurerm_cosmosdb_account.main.name
-  database_name         = azurerm_cosmosdb_sql_database.main.name
-  partition_key_paths   = ["/id"]
-  partition_key_version = 1
-  throughput            = 400
-}
-
-# --- Cosmos DB Mongo API (perfil Spring local / user_profiles) ---
-resource "azurerm_cosmosdb_account" "mongo" {
-  name                = substr("${local.alnum}mongo${local.suffix}", 0, 44)
+# --- Kafka KRaft (mesma tecnologia do compose — NÃO Event Hubs) ---
+resource "azurerm_container_group" "kafka" {
+  name                = "${var.project_name}-kafka-${local.suffix}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  offer_type          = "Standard"
-  kind                = "MongoDB"
+  os_type             = "Linux"
+  ip_address_type     = "Public"
+  dns_name_label      = local.kafka_dns
+  restart_policy      = "Always"
 
-  consistency_policy {
-    consistency_level = "Session"
-  }
+  container {
+    name   = "kafka"
+    image  = "bitnami/kafka:3.6"
+    cpu    = "1"
+    memory = "2"
 
-  geo_location {
-    location          = azurerm_resource_group.main.location
-    failover_priority = 0
+    ports {
+      port     = 9092
+      protocol = "TCP"
+    }
+
+    environment_variables = {
+      KAFKA_CFG_NODE_ID                        = "0"
+      KAFKA_CFG_PROCESS_ROLES                  = "controller,broker"
+      KAFKA_CFG_LISTENERS                      = "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP = "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS       = "0@127.0.0.1:9093"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES      = "CONTROLLER"
+      KAFKA_CFG_ADVERTISED_LISTENERS           = "PLAINTEXT://${local.kafka_dns}.${var.location}.azurecontainer.io:9092"
+      ALLOW_PLAINTEXT_LISTENER                 = "yes"
+    }
   }
 
   tags = azurerm_resource_group.main.tags
-}
-
-resource "azurerm_cosmosdb_mongo_database" "main" {
-  name                = "fraud_detection"
-  resource_group_name = azurerm_resource_group.main.name
-  account_name        = azurerm_cosmosdb_account.mongo.name
-}
-
-resource "azurerm_cosmosdb_mongo_collection" "user_profiles" {
-  name                = "user_profiles"
-  resource_group_name = azurerm_resource_group.main.name
-  account_name        = azurerm_cosmosdb_account.mongo.name
-  database_name       = azurerm_cosmosdb_mongo_database.main.name
-
-  shard_key = "_id"
-  throughput = 400
-
-  index {
-    keys   = ["_id"]
-    unique = true
-  }
 }
 
 # --- Key Vault ---
@@ -227,26 +191,6 @@ resource "azurerm_key_vault" "main" {
   }
 }
 
-# --- PostgreSQL ---
-resource "azurerm_postgresql_flexible_server" "main" {
-  name                   = substr("${local.alnum}pg${local.suffix}", 0, 63)
-  resource_group_name    = azurerm_resource_group.main.name
-  location               = azurerm_resource_group.main.location
-  version                = "14"
-  administrator_login    = var.db_admin_username
-  administrator_password = var.db_admin_password
-  sku_name               = "B_Standard_B1ms"
-  storage_mb             = 32768
-
-  tags = azurerm_resource_group.main.tags
-}
-
-resource "azurerm_postgresql_flexible_server_database" "main" {
-  name      = "fraud_detection"
-  server_id = azurerm_postgresql_flexible_server.main.id
-  charset   = "UTF8"
-  collation = "en_US.utf8"
-}
 
 # --- Observabilidade (sempre — par do slide Monitor / App Insights) ---
 resource "azurerm_log_analytics_workspace" "main" {
@@ -301,11 +245,6 @@ resource "azurerm_container_app" "api" {
   }
 
   secret {
-    name  = "eventhub-conn"
-    value = azurerm_eventhub_authorization_rule.send_listen.primary_connection_string
-  }
-
-  secret {
     name  = "mongodb-uri"
     value = local.mongodb_uri
   }
@@ -331,20 +270,20 @@ resource "azurerm_container_app" "api" {
         value = "local"
       }
       env {
-        name        = "EVENTHUB_CONNECTION_STRING"
-        secret_name = "eventhub-conn"
-      }
-      env {
         name        = "MONGODB_URI"
         secret_name = "mongodb-uri"
       }
       env {
-        name  = "FRAUD_EMAIL_ENABLED"
-        value = "false"
+        name  = "KAFKA_BOOTSTRAP_SERVERS"
+        value = local.kafka_bootstrap
       }
       env {
         name  = "FRAUD_KAFKA_ENABLED"
-        value = "false"
+        value = "true"
+      }
+      env {
+        name  = "FRAUD_KAFKA_TOPIC"
+        value = "transaction-analyzed"
       }
       env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"

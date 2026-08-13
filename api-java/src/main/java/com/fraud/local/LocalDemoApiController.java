@@ -2,8 +2,6 @@ package com.fraud.local;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fraud.local.mongo.UserProfileRepository;
-import com.fraud.messaging.FraudAlertEmailMessage;
-import com.fraud.messaging.FraudEmailNotificationPublisher;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -13,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -42,9 +39,6 @@ public class LocalDemoApiController {
     private final TransactionHistoryService transactionHistory;
     private final DemoIdentityGenerator demoIdentity;
     private final AnalyzedEventService analyzedEventService;
-
-    @Autowired(required = false)
-    private FraudEmailNotificationPublisher fraudEmailPublisher;
 
     @GetMapping("/")
     public Map<String, Object> root() {
@@ -159,23 +153,6 @@ public class LocalDemoApiController {
                 alert.put("timestamp", now.toInstant().toString());
                 alert.put("status", "OPEN");
                 state.addAlert(alert);
-
-                if (fraudEmailPublisher != null) {
-                    fraudEmailPublisher.publishFraudDetected(
-                            FraudAlertEmailMessage.builder()
-                                    .alertId(alertId)
-                                    .transactionId(txId)
-                                    .fraudScore(((Number) result.get("fraud_score")).doubleValue())
-                                    .riskLevel(String.valueOf(result.get("risk_level")))
-                                    .recommendedAction(String.valueOf(result.get("recommended_action")))
-                                    .amount(body.amount())
-                                    .merchantCategory(body.merchantCategory())
-                                    .paymentMethod(paymentMethod)
-                                    .holderDocument(holderDocument)
-                                    .cardHolderName(cardHolderName)
-                                    .detectedAt(now.toInstant())
-                                    .build());
-                }
             }
 
             Map<String, Object> response = new LinkedHashMap<>(result);

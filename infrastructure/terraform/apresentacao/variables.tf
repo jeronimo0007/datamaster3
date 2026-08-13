@@ -16,7 +16,7 @@ variable "project_name" {
 variable "name_suffix" {
   type        = string
   default     = "banca"
-  description = "Sufixo estável dos recursos (apresentação). Troque só se houver conflito de nome global após delete."
+  description = "Sufixo estável dos recursos (apresentação)."
 }
 
 variable "storage_account_name" {
@@ -25,37 +25,27 @@ variable "storage_account_name" {
   default     = null
 }
 
-variable "event_hub_namespace" {
-  type    = string
-  default = null
-}
-
 variable "key_vault_name" {
   type    = string
   default = null
 }
 
-variable "db_admin_username" {
-  type      = string
-  default   = "fraudadmin"
-  sensitive = true
-}
-
-variable "db_admin_password" {
-  type      = string
-  sensitive = true
+variable "mongo_admin_password" {
+  type        = string
+  sensitive   = true
+  description = "Senha do MongoDB (mesma stack do docker-compose)."
+  default     = "admin123ChangeMe"
 }
 
 variable "enable_analytics_stack" {
-  description = "Databricks + Synapse + Azure ML — stack completa de apresentação (ativo por padrão)."
+  description = "Databricks + Synapse + Azure ML (opcional)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "analytics_high_cost_acknowledged" {
-  description = "Confirma aceite de custo da stack analítica (obrigatório quando enable_analytics_stack = true)."
-  type        = bool
-  default     = true
+  type    = bool
+  default = false
 }
 
 variable "synapse_sql_admin_login" {
@@ -64,13 +54,12 @@ variable "synapse_sql_admin_login" {
 }
 
 variable "databricks_sku" {
-  type        = string
-  default     = "premium"
-  description = "SKU do Databricks (standard foi descontinuado; use premium)."
+  type    = string
+  default = "premium"
 }
 
 variable "api_container_image" {
-  description = "Imagem da API Java no ACR (após docker push). null = quickstart até o job de build."
+  description = "Imagem da API Java no ACR. null = quickstart até o build."
   type        = string
   default     = null
 }

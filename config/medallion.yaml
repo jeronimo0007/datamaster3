@@ -1,21 +1,29 @@
-# Convenção de camadas Medallion no data lake (Azure ADLS ou AWS S3).
-# Prefixo completo = {base_uri}/layer/entity  — ver src/data_architecture/medallion.py
+# Convenção Medallion — mesma em Docker, Azure e AWS
+# Paths: {base}/layer/entity — src/data_architecture/medallion.py
 
 layers:
+  landing:
+    description: "Aterrissagem multi-formato (JSON, CSV, Parquet, XML)"
+    default_entity: "transactions"
   bronze:
-    description: "Landing — dados como chegaram; retencao longa; schema flexivel"
+    description: "Parquet fiel à origem"
     default_entity: "transactions"
   silver:
-    description: "Limpeza, dedup, enriquecimento, DQ; dataset confiavel analitico"
+    description: "Limpeza, dedup, enriquecimento + DQ"
     default_entity: "transactions"
   gold:
-    description: "Consumo negocio e ML — agregados, wide tables, features"
+    description: "Features / consumo ML e BI"
     default_entity: "transactions_ml"
 
-# Mapeamento rapido com padroes de streaming (fala tecnica)
-streaming_patterns:
-  lambda:
-    speed: "Event Hubs / Kafka / Kinesis → score / API em baixa latencia"
-    batch: "ADF / Glue / Spark (este notebook) → Silver / Gold no lake"
-  kappa:
-    note: "Um unico log/stream com replay para reprocessamento; menos componentes, mais exigencia no pipeline de stream"
+orchestration:
+  tool: "Apache Airflow"
+  dags:
+    - ingest_multi_source
+    - medallion_pipeline
+    - datamaster_e2e
+
+stack:
+  streaming: "Kafka"
+  nosql: "MongoDB"
+  processing: "Spark"
+  note: "Mesmos componentes no local e na nuvem — sem substitutos"

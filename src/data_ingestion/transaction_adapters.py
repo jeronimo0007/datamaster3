@@ -8,7 +8,7 @@ Hoje no projeto:
 - **Dados simulados em lote:** `scripts/generate_data.py` grava JSON com formato proprio (inclui `timestamp`, `is_fraud`, categorias com acento).
 - **Producao (nuvem):** `src/data_storage/datalake_client.py` envia bytes ao lake; pastas **bronze/silver/gold** padronizadas em `src/data_architecture/medallion.py`.
 
-Para **outra fonte** (SQL, CSV, S3, Mongo, Event Hub, Kafka), o padrao e:
+Para **outra fonte** (SQL, CSV, S3, Mongo, Kafka), o padrao e:
 1. Ler o registro bruto.
 2. Chamar um adaptador abaixo para obter o **dict canonico** (mesmas chaves que a API usa).
 3. Opcional: `model.predict(normalized)` ou POST para a API.
@@ -113,7 +113,7 @@ def from_simulator_record(row: Dict[str, Any]) -> Dict[str, Any]:
 
 def from_event_or_queue_message(payload: str | bytes | Dict[str, Any]) -> Dict[str, Any]:
     """
-    Mensagem de Event Hubs / Kafka: corpo JSON com mesmo layout do simulador
+    Mensagem Kafka: corpo JSON com mesmo layout do simulador
     ou do canal core banking (ajuste mapeamento conforme contrato real).
 
     Se o core enviar outros nomes de coluna, crie um `from_core_banking_row` dedicado.
@@ -147,6 +147,26 @@ def from_csv_row(row: Dict[str, str]) -> Dict[str, Any]:
     }
 
 
+def from_xml_transaction(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Elemento XML já convertido em dict (tags → valores)."""
+    return from_simulator_record(
+        {
+            "transaction_id": row.get("transaction_id", "xml-unknown"),
+            "amount": row.get("amount", 0),
+            "merchant_category": row.get("merchant_category", "Outros"),
+            "payment_method": row.get("payment_method", "CREDIT_CARD"),
+            "timestamp": row.get("timestamp", ""),
+            "user_country": row.get("user_country", "BR"),
+            "merchant_country": row.get("merchant_country", "BR"),
+        }
+    )
+
+
+def from_parquet_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Linha tipada de Parquet/landing — mesmo contrato do simulador."""
+    return from_simulator_record(row)
+
+
 def normalize_for_model(raw: Dict[str, Any], source: str = "auto") -> Dict[str, Any]:
     """
     Despacha para o adaptador certo.
@@ -154,8 +174,10 @@ def normalize_for_model(raw: Dict[str, Any], source: str = "auto") -> Dict[str, 
     source:
         - "api" — corpo do POST atual
         - "simulator" — linha `generate_data`
-        - "event" — JSON de fila / Event Hub
-        - "csv" — dict de CSV renomeado
+        - "event" — JSON de fila / Kafka
+        - "csv" — dict de CSV
+        - "xml" — dict de XML
+        - "parquet" — linha Parquet
         - "auto" — tenta inferir pela presenca de `timestamp` (simulador)
     """
     if source == "api":
@@ -164,6 +186,10 @@ def normalize_for_model(raw: Dict[str, Any], source: str = "auto") -> Dict[str, 
         return from_simulator_record(raw)
     if source == "csv":
         return from_csv_row({k: str(v) for k, v in raw.items()})
+    if source == "xml":
+        return from_xml_transaction(raw)
+    if source == "parquet":
+        return from_parquet_row(raw)
     if source == "event":
         return from_event_or_queue_message(raw)
 

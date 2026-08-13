@@ -1,5 +1,10 @@
-"""Padroes de plataforma de dados: Medalhao, Lambda, Kappa."""
+"""Padroes de plataforma de dados: Medallion + streaming Kafka."""
 
-from .medallion import LAMBDA_KAPPA_NOTES, MedallionLayout
+from .medallion import LAYER_ALIASES, MedallionLayout, default_layout, landing_dir
 
-__all__ = ["LAMBDA_KAPPA_NOTES", "MedallionLayout"]
+__all__ = [
+    "LAYER_ALIASES",
+    "MedallionLayout",
+    "default_layout",
+    "landing_dir",
+]

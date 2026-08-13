@@ -8,12 +8,6 @@ spring:
     mongodb:
       uri: ${MONGODB_URI:mongodb://admin:admin123@mongodb:27017/fraud_detection?authSource=admin}
 
-  rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:datamaster}
-    password: ${RABBITMQ_PASSWORD:datamaster}
-
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
     producer:
@@ -39,8 +33,6 @@ fraud:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: https://api.deepseek.com
     model: deepseek-chat
-  email:
-    enabled: ${FRAUD_EMAIL_ENABLED:true}
   kafka:
     enabled: ${FRAUD_KAFKA_ENABLED:true}
     topic: ${FRAUD_KAFKA_TOPIC:transaction-analyzed}

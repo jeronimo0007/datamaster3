@@ -1,52 +1,40 @@
 """
-Arquitetura Medallion (camadas) e padroes de processamento em tempo real.
+Arquitetura Medallion (Bronze / Silver / Gold).
 
-MEDALHAO (Bronze / Silver / Gold)
----------------------------------
-- **Bronze:** landing fiel a origem (schema flexivel, retencao maior, auditoria).
-  Ex.: JSON/Parquet/Avro como chegou do core, API ou Event Hub.
-- **Silver:** dados limpos, deduplicados, tipados; regras de negocio e DQ.
-  Ex.: `clean_transactions`, joins de enriquecimento.
+Camadas
+-------
+- **Bronze:** landing fiel à origem (schema flexível, retenção maior, auditoria).
+- **Silver:** dados limpos, deduplicados, tipados; regras de negócio e DQ.
 - **Gold:** agregados e datasets de consumo (BI, ML serving batch, feature sets).
-  Ex.: tabela wide para treino XGBoost, KPIs por dia.
 
-O mesmo layout de prefixos funciona em **ADLS Gen2** (Azure) ou **S3** (AWS),
-por exemplo: `s3://bucket/fraud/bronze/transactions`.
+O mesmo layout de prefixos funciona em **ADLS Gen2** (Azure) ou filesystem local,
+por exemplo: `abfss://bronze@storage.dfs.core.windows.net/transactions`
+ou `file:///.../data/lake/bronze/transactions`.
 
-Lambda vs Kappa
----------------
-- **Lambda:** duas vias — **speed** (streaming, baixa latencia, aproximado ou
-  ultimo estado) + **batch** (reprocessamento completo, correccao, historico).
-  O **serving** combina ou o usuario le a camada adequada. Encaixa em antifraude:
-  score online via fila/API + recomputo diario no lake (Silver/Gold).
-- **Kappa:** uma unica via tratada como **log/stream**; reprocessamento = replay.
-  Menos componentes, mais pressao no motor de stream e no armazenamento de log.
-
-Outras referencias
-------------------
-- **Data Mesh:** dominio e ownership por produto de dados (nao e um pipeline unico).
+Streaming complementar
+----------------------
+Kafka no Docker local, Azure e AWS publicam eventos de
+negócio analisados. O lake Medallion é orquestrado pelo Airflow (jobs por camada).
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
-Layer = Literal["bronze", "silver", "gold"]
-
-
-LAMBDA_KAPPA_NOTES: str = __doc__ or ""
+Layer = Literal["bronze", "silver", "gold", "landing"]
 
 
 @dataclass(frozen=True)
 class MedallionLayout:
     """
-    Prefixos padrao no lake para alinhar codigo, Terraform e documentacao.
+    Prefixos padrão no lake — única fonte de paths para código, Airflow e docs.
 
     base_uri exemplos:
     - Azure: abfss://container@storage.dfs.core.windows.net/fraud
-    - AWS:   s3a://meu-bucket/fraud
-    - Local demo: file:///.../data/lake  (opcional para testes)
+    - Local demo: file:///.../data/lake
     """
 
     base_uri: str
@@ -64,11 +52,33 @@ class MedallionLayout:
     def gold(self, entity: str = "transactions_ml") -> str:
         return self.path("gold", entity)
 
+    def reports(self) -> str:
+        return f"{self.base_uri.rstrip('/')}/reports"
 
-# Aliases historicos (notebook legado raw/processed/curated)
+
+def project_root() -> Path:
+    return Path(os.environ.get("PROJECT_ROOT", Path(__file__).resolve().parents[2]))
+
+
+def default_layout(root: Path | None = None) -> MedallionLayout:
+    """Layout local padrão: data/lake (espelho ADLS na Azure)."""
+    base = root or project_root()
+    lake = base / "data" / "lake"
+    lake.mkdir(parents=True, exist_ok=True)
+    return MedallionLayout(base_uri=lake.as_uri())
+
+
+def landing_dir(root: Path | None = None) -> Path:
+    base = root or project_root()
+    path = base / "data" / "landing"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+# Aliases históricos (notebook legado raw/processed/curated)
 LAYER_ALIASES: dict[str, Layer] = {
     "raw": "bronze",
-    "landing": "bronze",
+    "landing": "landing",
     "processed": "silver",
     "curated": "gold",
 }

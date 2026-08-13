@@ -157,6 +157,8 @@
   </style>
 </head>
 <body>
+<div style="background:#0e7490;color:#fff;padding:0.65rem 1rem;font-size:0.9rem;text-align:center;">Atualizado: foco engenharia de dados · Airflow Medallion · Azure only · sem RabbitMQ/Lambda/AWS. Ver README e Airflow :8085</div>
+
   <header>
     <h1>Cola do apresentador <span class="badge">NÃO compartilhar no Meet</span></h1>
     <p>
@@ -239,12 +241,12 @@
         “Extração, para mim, é <strong>contrato</strong>. O problema é fonte heterogênea.
         Eu simulo o core na mesa e uso adapters para normalizar.
         Assim o scoring não depende do schema de quem enviou.
-        Em Azure isso vira Event Hubs ou ADF para o ADLS; em AWS, Kinesis ou Glue no S3 — o porquê é o mesmo.”
+        Em Azure isso vira Kafka ou ADF para o ADLS; em AWS, Kafka ou Glue no S3 — o porquê é o mesmo.”
       </p>
       <h3>Cloud (não overclaim)</h3>
       <ul>
-        <li>Azure: Event Hubs producer + ADF Copy → ADLS Raw/Bronze</li>
-        <li>AWS: Kinesis/MSK + Glue/Step Functions → S3 Raw/Bronze</li>
+        <li>Azure: Kafka producer + ADF Copy → ADLS Raw/Bronze</li>
+        <li>AWS: Kafka/MSK + Glue/Step Functions → S3 Raw/Bronze</li>
         <li>Adapter/job normaliza — padrão igual ao <code>transaction_adapters.py</code></li>
       </ul>
       <h3>Trade-off (se perguntarem)</h3>
@@ -258,7 +260,7 @@
           <li>Console <a href="http://localhost:3333" target="_blank" rel="noopener">:3333</a> → Gerar JSON</li>
           <li>Mostrar <code>data/transactions.json</code> (= landing / Bronze)</li>
           <li>Abrir <code>src/data_ingestion/transaction_adapters.py</code> → <code>from_simulator_record</code></li>
-          <li>Narrativa: <code>event_hub_producer.py</code> (Event Hubs / Kinesis)</li>
+          <li>Narrativa: <code>event_hub_producer.py</code> (Kafka / Kafka)</li>
         </ul>
         <pre>docker compose exec api python scripts/generate_data.py -n 100 -o data/transactions.json</pre>
       </div>
@@ -290,7 +292,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <ul>
           <li>Caminho: Console → API → Mongo → resposta</li>
           <li>Sempre: Kafka <code>transaction-analyzed</code> (async)</li>
-          <li>Se fraude: Rabbit → email-worker</li>
+          <li>Se fraude: Rabbit → serving API</li>
           <li>LB/Gateway apagados = produção, não mesa</li>
         </ul>
       </div>
@@ -303,9 +305,9 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
           <li><strong>Kafka = fato</strong> (“a análise aconteceu”) — log, volume, replay, vários consumidores, categoria para Negócios.</li>
           <li><strong>Rabbit = tarefa</strong> (“envie o e-mail”) — work queue pontual; HTTP não espera SMTP.</li>
         </ul>
-        <p style="margin:0.45rem 0 0;"><strong>Poderia só Kafka?</strong> Sim — consumer manda SMTP. Trade-off: overkill para alerta; misturam fato e tarefa; no cloud o par natural de e-mail é Service Bus/SQS.</p>
+        <p style="margin:0.45rem 0 0;"><strong>Poderia só Kafka?</strong> Sim — consumer manda SMTP. Trade-off: overkill para alerta; misturam fato e tarefa; no cloud o par natural de e-mail é Kafka/SQS.</p>
         <p style="margin:0.35rem 0 0;"><strong>Poderia só Rabbit?</strong> Sim para e-mail. Trade-off: fraco como log de negócio com replay → lake/Gold.</p>
-        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Eu poderia unificar. Separarei porque Kafka registra o fato e Rabbit executa a tarefa. Só Kafka deixa o alerta mais pesado; só Rabbit deixa fraco o barramento analítico. No cloud: Event Hubs + Service Bus — o porquê é o mesmo.”</p>
+        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Eu poderia unificar. Separarei porque Kafka registra o fato e Rabbit executa a tarefa. Só Kafka deixa o alerta mais pesado; só Rabbit deixa fraco o barramento analítico. No cloud: Kafka + Kafka — o porquê é o mesmo.”</p>
       </div>
 
       <h3 id="defesa-kafka-cloud">Defesa — por que não Kafka em Azure/AWS? (tópico 2)</h3>
@@ -314,10 +316,10 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <strong>Escolhi o PaaS nativo</strong> porque o desenho é o <em>papel</em>, não o logo do produto.
         <ul>
           <li><strong>Mesa / k3s:</strong> Kafka — broker que eu opero no Compose/cluster.</li>
-          <li><strong>Azure:</strong> Event Hubs — gerenciado, Capture → ADLS, mesmo problema (partições, consumers, replay).</li>
-          <li><strong>AWS:</strong> Kinesis ou MSK — Kinesis = stream gerenciado; MSK se eu quiser API Kafka.</li>
+          <li><strong>Azure:</strong> Kafka — gerenciado, Capture → ADLS, mesmo problema (partições, consumers, replay).</li>
+          <li><strong>AWS:</strong> Kafka ou MSK — Kafka = stream gerenciado; MSK se eu quiser API Kafka.</li>
         </ul>
-        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Na mesa uso Kafka. Na Azure o equivalente é Event Hubs — eu poderia instalar Kafka lá; preferiria Event Hubs para reduzir operação. O porquê não muda: fato assíncrono após o analyze. Um desenho, três lugares — o produto muda, o papel não.”</p>
+        <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Na mesa uso Kafka. Na Azure o equivalente é Kafka — eu poderia instalar Kafka lá; preferiria Kafka para reduzir operação. O porquê não muda: fato assíncrono após o analyze. Um desenho, três lugares — o produto muda, o papel não.”</p>
       </div>
 
       <h3>Slide 7 / 7c — Medallion / stores</h3>
@@ -360,7 +362,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <strong>Defesa — por que equivalência Monitor/CloudWatch (e não “só Prom/Grafana na nuvem”)?</strong>
         <ul>
           <li>Prometheus <em>pode</em> na nuvem (Azure/AWS Managed Prometheus + Managed Grafana).</li>
-          <li>Métrica de <em>PaaS</em> (Event Hubs, Cosmos, Databricks, Kinesis) <strong>não</strong> vem de scrape da minha app — só existe no Monitor/CloudWatch.</li>
+          <li>Métrica de <em>PaaS</em> (Kafka, MongoDB, Databricks, Kafka) <strong>não</strong> vem de scrape da minha app — só existe no Monitor/CloudWatch.</li>
           <li>Equivalência = <strong>capacidade / papel</strong>, não “proibido usar Prometheus”.</li>
           <li>Produção ideal: <strong>híbrido</strong> — Prom para app/K8s; nativo para PaaS; Grafana como visão única (datasource Azure Monitor/CW).</li>
         </ul>
@@ -401,7 +403,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
           <tbody>
             <tr><td>Mesa (Compose)</td><td>PLAINTEXT · rede interna</td><td>—</td><td>—</td></tr>
             <tr><td>Kafka self-managed</td><td><code>SASL_SSL</code> / mTLS</td><td>SCRAM ou cert</td><td><strong>ACL por tópico</strong></td></tr>
-            <tr><td>Azure Event Hubs</td><td>TLS 1.2 obrigatório</td><td>Entra ID (preferido) ou SAS</td><td>RBAC Sender/Receiver</td></tr>
+            <tr><td>Azure Kafka</td><td>TLS 1.2 obrigatório</td><td>Entra ID (preferido) ou SAS</td><td>RBAC Sender/Receiver</td></tr>
             <tr><td>AWS MSK</td><td>TLS in-transit + KMS at-rest</td><td>IAM auth ou mTLS</td><td>Policy IAM por tópico</td></tr>
           </tbody>
         </table>
@@ -487,7 +489,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <table>
           <thead><tr><th>Perguntaram</th><th>Diga</th></tr></thead>
           <tbody>
-            <tr><td>TLS no Kafka?</td><td>Mesa PLAINTEXT em rede interna; prod SASL_SSL + ACL por tópico (Event Hubs/MSK já TLS)</td></tr>
+            <tr><td>TLS no Kafka?</td><td>Mesa PLAINTEXT em rede interna; prod SASL_SSL + ACL por tópico (Kafka/MSK já TLS)</td></tr>
             <tr><td>OAuth2/JWT?</td><td>Resource server valida JWT do Entra/Cognito; client credentials M2M, PKCE p/ humano</td></tr>
             <tr><td>API key serve?</td><td>Não: sem expiração, sem escopo, sem identidade</td></tr>
             <tr><td>Front → API</td><td>Mesa CORS aberto (lab); prod passa por gateway, token no header, core em rede privada</td></tr>
@@ -719,9 +721,9 @@ ls data/lake/bronze data/lake/silver data/lake/gold</pre>
         <table>
           <thead><tr><th>Camada</th><th>Alavanca</th><th>Cloud</th></tr></thead>
           <tbody>
-            <tr><td>Stream (Kafka/EH)</td><td><strong>Partições</strong> + consumer groups</td><td>TU Event Hubs · shards Kinesis</td></tr>
+            <tr><td>Stream (Kafka/EH)</td><td><strong>Partições</strong> + consumer groups</td><td>TU Kafka · shards Kafka</td></tr>
             <tr><td>Batch (Spark)</td><td><strong>Workers</strong> / cluster</td><td>Databricks · EMR</td></tr>
-            <tr><td>Serving (Mongo)</td><td>Índices · shard · RU/WCU</td><td>Cosmos RU · DynamoDB</td></tr>
+            <tr><td>Serving (Mongo)</td><td>Índices · shard · RU/WCU</td><td>MongoDB RU · MongoDB</td></tr>
             <tr><td>API</td><td><strong>Réplicas</strong> horizontais (stateless)</td><td>AKS HPA · Container Apps · ECS</td></tr>
             <tr><td>Cache</td><td>Redis hot keys</td><td>Cache for Redis · ElastiCache</td></tr>
             <tr><td>Lake</td><td>Partição por <strong>data/canal</strong></td><td>ADLS · S3</td></tr>
@@ -787,7 +789,7 @@ ls data/lake/bronze data/lake/silver data/lake/gold</pre>
           <tr><td>T4b</td><td>Aba LGPD</td></tr>
           <tr><td>T5–T6</td><td>Analyze normal + fraude (abaixo)</td></tr>
           <tr><td>T7</td><td>Console lote ou POST batch</td></tr>
-          <tr><td>T4c</td><td>RabbitMQ :15672 · logs email-worker</td></tr>
+          <tr><td>T4c</td><td>Kafka :8085 · logs serving API</td></tr>
           <tr><td>T8</td><td>Consumer <code>transaction-analyzed</code> · dashboard Kafka · Jupyter dia</td></tr>
           <tr><td>T9</td><td>Jupyter · Spark · <code>ls data/lake/*</code></td></tr>
           <tr><td>T11</td><td>Prometheus · Grafana</td></tr>
@@ -821,7 +823,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <li>Banca: http://localhost:8880/banca.html</li>
         <li>Cola: http://localhost:8880/cola.html</li>
         <li>Console: http://localhost:3333 · Dashboard: http://localhost:8501 (aba <strong>Kafka / eventos do dia</strong>)</li>
-        <li>Swagger: http://localhost:8080/swagger-ui.html · Rabbit: http://localhost:15672</li>
+        <li>Swagger: http://localhost:8080/swagger-ui.html · Rabbit: http://localhost:8085</li>
         <li>Jupyter: http://localhost:8888/?token=datamaster → <code>02_kafka_consultas_dia.ipynb</code></li>
       </ul>
       <p style="margin:0.6rem 0 0;color:var(--muted);font-size:0.82rem;">

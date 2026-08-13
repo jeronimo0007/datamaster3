@@ -217,7 +217,7 @@ class G:
         ky = y_base + bh + 18
         kafka = self.c(
             pid,
-            "<b>Kafka :9092</b> (opcional)<br><font style=\"font-size:10px\">Só para demo de streaming / Event Hubs — "
+            "<b>Kafka :9092</b> (opcional)<br><font style=\"font-size:10px\">Streaming Kafka — "
             "<b>não</b> é o caminho do console nem do painel nesta stack</font>",
             x0,
             ky,
@@ -533,7 +533,7 @@ def build_batch_medallion() -> str:
     # --- SERVE ---
     vz = g.zone(layer, "Serve", 780, 52, 396, 420, "serve")
     mongo = g.step_green(
-        vz, "5", "MongoDB", "user_profiles\nCosmos DB · DocumentDB", 118, 36, 160, 80, "store", "srv_mongo"
+        vz, "5", "MongoDB", "user_profiles\nMongoDB", 118, 36, 160, 80, "store", "srv_mongo"
     )
     api = g.step_green(
         vz,
@@ -901,7 +901,7 @@ def build_online_gateway() -> str:
     # --- RELATED SERVICES (outside) ---
     rel = g.c(
         layer,
-        "<b>Related Services</b><br><font style=\"font-size:9px;color:#555\">DeepSeek API<br>Azure Container Apps<br>Event Hubs / Kafka (narrativa)</font>",
+        "<b>Related Services</b><br><font style=\"font-size:9px;color:#555\">DeepSeek API<br>Azure Container Apps<br>Kafka</font>",
         1100,
         240,
         140,
@@ -1015,8 +1015,7 @@ def build_docker() -> str:
     # --- Infra / observabilidade ---
     g.hdr(layer, "INFRA PRONTA (não no fluxo principal da API demo)", "Disponível para narrativa de plataforma", 28, 678, pw - 56, "#605E5C")
     iz = g.c(layer, "", 28, 728, pw - 56, 150, f"rounded=0;fillColor=#FAF9F8;strokeColor=#EDEBE9;strokeWidth=1;", "z_inf")
-    svc(iz, "postgres", ":5432", "OLTP (schema pronto)", 24, 28, 155, 64, "#EDEBE9", "pg")
-    svc(iz, "redis", ":6379", "Cache (pronto)", 195, 28, 140, 64, "#EDEBE9", "redis")
+        svc(iz, "redis", ":6379", "Cache (pronto)", 195, 28, 140, 64, "#EDEBE9", "redis")
     prom = svc(iz, "prometheus", ":9090", "Scrape métricas API", 355, 28, 155, 64, "#EDEBE9", "prom")
     graf = svc(iz, "grafana", ":3000", "Dashboards ops", 530, 28, 155, 64, "#EDEBE9", "graf")
     g.e(iz, prom, api, "métricas", dashed=True)
@@ -1037,10 +1036,10 @@ def build_map() -> str:
     g.cells = ['        <mxCell id="0"/>\n', f'        <mxCell id="{root}" parent="0"/>\n', f'        <mxCell id="{layer}" parent="{root}"/>\n']
     g.hdr(layer, "03 — MAPA NUVEM", "Referência rápida", 20, 12, pw - 40, "#605E5C")
     rows = [
-        ("Batch", "Data Factory", "Glue", "batch_dataprep"),
-        ("Stream", "Event Hubs", "Kinesis", "Kafka"),
-        ("Lake Medalhão", "ADLS bronze/prata/ouro", "S3 B/S/G", "MinIO · data/lake/"),
-        ("Perfis", "Cosmos", "DynamoDB", "MongoDB"),
+        ("Batch", "Airflow + Spark", "Airflow + Spark", "Airflow + Spark"),
+        ("Stream", "Kafka", "Kafka", "Kafka"),
+        ("Lake Medalhão", "ADLS bronze/silver/gold", "S3 B/S/G", "MinIO · data/lake/"),
+        ("Perfis", "MongoDB", "MongoDB", "MongoDB"),
         ("API", "Container Apps", "ECS/EKS", ":8080"),
         ("Painel", "Power BI", "QuickSight", "Streamlit"),
     ]
