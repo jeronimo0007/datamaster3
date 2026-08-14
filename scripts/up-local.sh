@@ -17,4 +17,4 @@ fi
 
 docker compose up -d --build --remove-orphans
 echo ""
-echo "Local: http://localhost:8880 (portal) | Airflow :8085 | API :8080 | docs/operacao/CHECKLIST_DEMO_BANCA.md"
+echo "Local: http://localhost:8880 (portal) | Airflow :8085 | API :8080 | docs/operacao/"

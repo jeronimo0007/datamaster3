@@ -67,8 +67,6 @@ flowchart LR
 
 ![Arquitetura de dados ponta a ponta](docs/arquitetura/datamaster-00-visao-geral.jpg)
 
-*Diagrama editável: `docs/arquitetura/datamaster-00-visao-geral.drawio` · imagem: `docs/arquitetura/datamaster-00-visao-geral.jpg`*
-
 ---
 
 ## 3. Arquitetura de dados (detalhada)
@@ -278,5 +276,4 @@ Plano de evolução para produção com opções gerenciadas — mantendo o **me
 |-----|---------|
 | Este README | Banca / engenharia |
 | [`docs/VISAO_GESTAO.md`](docs/VISAO_GESTAO.md) | Gestor |
-| [`docs/operacao/CHECKLIST_DEMO_BANCA.md`](docs/operacao/CHECKLIST_DEMO_BANCA.md) | Demo ao vivo |
 | [`infrastructure/MAPA_LOCAL_AZURE.md`](infrastructure/MAPA_LOCAL_AZURE.md) | Tabela multicloud |

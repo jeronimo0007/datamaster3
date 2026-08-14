@@ -32,7 +32,3 @@ Plataforma de **engenharia de dados** para antifraude: camadas Medallion, qualid
 | Dado sujo no modelo | DQ gate Bronze → Silver |
 | Reprocesso caro | Jobs por camada, idempotentes |
 | Drift local vs nuvem | Mesmos componentes (Kafka, Mongo) em todos os ambientes |
-
-## Pedido à gestão
-
-Validar Medallion + Airflow + Kafka + Mongo como padrão, com Docker local como prova e Azure/AWS com a **mesma** pilha.
