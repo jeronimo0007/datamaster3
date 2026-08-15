@@ -8,7 +8,7 @@ help:
 	@echo "Targets:"
 	@echo "  up-local       - docker compose (demo engenharia de dados)"
 	@echo "  deploy-azure   - terraform Azure (mesma stack: Kafka, Mongo, lake)"
-	@echo "  deploy-aws     - terraform AWS preparado (S3 lake + mesma stack em containers)"
+	@echo "  deploy-aws     - terraform AWS (S3 + ECS: Kafka/Mongo/Airflow/API)"
 	@echo "Docs: readme.md | docs/VISAO_GESTAO.md"
 
 up-local:

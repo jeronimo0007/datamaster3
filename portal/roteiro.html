@@ -273,7 +273,7 @@
         <h2>Como eu explico local + Azure + AWS</h2>
         <div class="card">
           <ul class="fala">
-            <li>“O <strong>mesmo desenho</strong> roda nos três ambientes: <strong>local</strong> eu opero ao vivo; na <strong>Azure</strong> o Terraform da pasta <code>apresentacao</code> sobe lake, Kafka, MongoDB, Monitor e API em Container Apps; a <strong>AWS</strong> fica <strong>preparada</strong> (<code>terraform/aws</code>, mesma stack).”</li>
+            <li>“O <strong>mesmo desenho</strong> roda nos três ambientes: <strong>local</strong> eu opero ao vivo; na <strong>Azure</strong> o Terraform da pasta <code>apresentacao</code> sobe lake, Kafka, MongoDB, Airflow e API; na <strong>AWS</strong> o <code>terraform/aws</code> sobe a mesma stack em ECS (S3 + Kafka + Mongo + Airflow + API).”</li>
             <li>“Antes da banca eu disparei o <code>terraform apply</code>. Durante a apresentação eu mostro o progresso: GitHub Actions, outputs do Terraform, portal Azure.”</li>
             <li>“Na mesa o avaliador vê <strong>tudo funcionando</strong> no Docker — API, Streamlit, Kafka, Grafana, batch Mongo, Spark. Isso não substitui a Azure; <strong>complementa</strong>.”</li>
             <li>“<strong>AWS</strong>: só o mapa — Kafka, S3, Spark — para mostrar multicloud sem gastar tempo de apply ao vivo.”</li>

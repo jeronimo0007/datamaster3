@@ -1,0 +1,72 @@
+# Orquestra deploy multicloud na main: Azure e AWS em paralelo
+# (dois workflows reutilizáveis / “submódulos”).
+#
+# Triggers: push/merge em `main` | workflow_dispatch
+name: Deploy → Multicloud (Azure ∥ AWS)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "apply = sobe/atualiza | destroy = apaga as stacks"
+        type: choice
+        options: [apply, destroy]
+        default: apply
+      enable_analytics_stack:
+        description: "Azure: Databricks + Synapse + AML (custo alto)"
+        type: boolean
+        default: false
+      name_suffix:
+        description: "Azure: sufixo dos nomes"
+        type: string
+        default: banca
+
+concurrency:
+  group: deploy-multicloud
+  cancel-in-progress: false
+
+jobs:
+  # Submódulo Azure — roda em paralelo com AWS
+  azure:
+    name: Azure
+    uses: ./.github/workflows/deploy-azure.yml
+    with:
+      action: ${{ github.event.inputs.action || 'apply' }}
+      terraform_dir: infrastructure/terraform/apresentacao
+      enable_analytics_stack: ${{ github.event.inputs.enable_analytics_stack == 'true' }}
+      name_suffix: ${{ github.event.inputs.name_suffix || 'banca' }}
+    secrets: inherit
+
+  # Submódulo AWS — paralelo (sem needs:)
+  aws:
+    name: AWS
+    uses: ./.github/workflows/deploy-aws.yml
+    with:
+      terraform_dir: infrastructure/terraform/aws
+      deploy_action: ${{ github.event.inputs.action || 'apply' }}
+    secrets: inherit
+
+  summary:
+    name: Resumo
+    runs-on: ubuntu-latest
+    needs: [azure, aws]
+    if: always()
+    steps:
+      - name: Status dos deploys
+        run: |
+          {
+            echo "## Deploy Multicloud (paralelo)"
+            echo
+            echo "| Cloud | Resultado |"
+            echo "|-------|-----------|"
+            echo "| Azure | \`${{ needs.azure.result }}\` |"
+            echo "| AWS | \`${{ needs.aws.result }}\` |"
+            echo
+            echo "Workflows: \`deploy-azure.yml\` ∥ \`deploy-aws.yml\`"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "${{ needs.azure.result }}" != "success" ] || [ "${{ needs.aws.result }}" != "success" ]; then
+            echo "::warning::Um ou ambos os deploys não concluíram com success."
+            exit 1
+          fi

@@ -43,6 +43,12 @@ locals {
   kafka_dns       = substr("${local.alnum}kafka${local.suffix}", 0, 63)
   mongo_dns       = substr("${local.alnum}mongo${local.suffix}", 0, 63)
   kafka_bootstrap = "${azurerm_container_group.kafka.fqdn}:9092"
+  # Airflow — mesma stack do docker-compose
+  airflow_image = coalesce(
+    var.airflow_container_image,
+    "apache/airflow:2.9.3-python3.11"
+  )
+  lake_uri = "abfss://lake@${azurerm_storage_account.datalake.name}.dfs.core.windows.net"
 }
 
 data "azurerm_client_config" "current" {}
@@ -67,6 +73,19 @@ resource "azurerm_storage_account" "datalake" {
   is_hns_enabled           = true
 
   tags = azurerm_resource_group.main.tags
+}
+
+# Filesystem principal do lake — subpastas landing/bronze/silver/gold
+resource "azurerm_storage_data_lake_gen2_filesystem" "lake" {
+  name               = "lake"
+  storage_account_id = azurerm_storage_account.datalake.id
+}
+
+# Azure Files share para metadados do Airflow (SQLite + logs + dags)
+resource "azurerm_storage_share" "airflow" {
+  name                 = "airflow"
+  storage_account_name = azurerm_storage_account.datalake.name
+  quota                = 10
 }
 
 resource "azurerm_storage_data_lake_gen2_filesystem" "bronze" {

@@ -687,7 +687,7 @@
         <div class="logo-row"><i class="bi bi-bank2"></i> Plataforma de dados · Azure / AWS · Banca</div>
         <p class="eyebrow">Apresentação</p>
         <h1 class="slide-title">Sistema de detecção de <em>fraudes bancárias</em></h1>
-        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três ambientes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>Azure</strong> (<code>terraform/apresentacao</code>, mesmo desenho) · <strong>AWS preparado</strong> (<code>terraform/aws</code>). Mesma stack em todos — sem serviços equivalentes.</p>
+        <p class="lead">Pipeline completo em <strong style="color:var(--accent-2);">três ambientes</strong>: <strong>demo ao vivo</strong> no Docker local (stack inteira) · <strong>Azure</strong> (<code>terraform/apresentacao</code>) · <strong>AWS</strong> (<code>terraform/aws</code>, ECS + S3). Mesma stack em todos — sem serviços equivalentes.</p>
         <div class="closing-flow" id="closing-flow" aria-label="Pipeline completo em movimento — da fonte ao alerta">
           <p class="closing-flow__cap">Visão do fluxo · do dado bruto ao alerta</p>
           <svg viewBox="0 0 920 210" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -754,7 +754,7 @@
           <div class="card-panel" style="margin:0;border-color:rgba(252,211,77,0.35);">
             <strong style="color:var(--accent-2);font-size:0.82rem;">② AWS — preparado (mesma stack)</strong>
             <ul class="clean" style="margin-top:0.45rem;font-size:0.82rem;">
-              <li><code>infrastructure/terraform/aws/</code> — S3 + Kafka + MongoDB + ECS/EKS (mesmo contrato)</li>
+              <li><code>infrastructure/terraform/aws/</code> — S3 + Kafka + MongoDB + Airflow + API (ECS)</li>
               <li>Não sobe na banca; provo com o mapa <strong>Local = Azure = AWS</strong> que o desenho não depende de vendor</li>
             </ul>
           </div>

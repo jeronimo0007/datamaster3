@@ -21,18 +21,26 @@ def _read_json_flexible(spark: SparkSession, path: Path) -> DataFrame:
     return spark.read.json(str(path))
 
 
-def read_landing(spark: SparkSession, landing: Path | None = None) -> DataFrame:
+def read_landing(spark: SparkSession, landing: Path | str | None = None) -> DataFrame:
     """
     Lê a run mais recente da landing.
     Os 4 formatos são a mesma carga (demo multi-formato) — escolhe um arquivo.
     Preferência: parquet > json > csv > xml.
+    Suporta landing remota (ADLS `abfss://`) via fsspec.
     """
-    root = project_root()
-    base = landing or landing_dir(root)
-    runs = sorted([p for p in base.glob("run=*") if p.is_dir()], reverse=True)
-    search = runs[0] if runs else base
+    from src.data_architecture.storage import is_remote, list_runs
 
-    chosen: Path | None = None
+    root = project_root()
+    base = landing if landing is not None else landing_dir(root)
+    remote = is_remote(base)
+    if remote:
+        runs = list_runs(str(base))
+        search = Path(runs[0]) if runs else Path(str(base))
+    else:
+        runs = sorted([p for p in Path(base).glob("run=*") if p.is_dir()], reverse=True)
+        search = runs[0] if runs else Path(base)
+
+    chosen: Path | str | None = None
     for pattern in (
         "**/transactions.parquet",
         "**/transactions.json",
@@ -40,7 +48,12 @@ def read_landing(spark: SparkSession, landing: Path | None = None) -> DataFrame:
         "**/transactions.xml",
         "**/transactions.jsonl",
     ):
-        found = sorted(search.glob(pattern))
+        if remote:
+            import fsspec
+
+            found = sorted(fsspec.glob(f"{str(search).rstrip('/')}/{pattern}"))
+        else:
+            found = sorted(Path(search).glob(pattern))
         if found:
             chosen = found[0]
             break
@@ -54,22 +67,44 @@ def read_landing(spark: SparkSession, landing: Path | None = None) -> DataFrame:
                 f"Nenhum arquivo em {base}. Rode a DAG de ingestão ou scripts/ingest_landing.py."
             )
 
-    suffix = chosen.suffix.lower()
-    if suffix == ".parquet":
-        df = spark.read.parquet(str(chosen))
-    elif suffix == ".csv":
-        df = spark.read.option("header", True).option("inferSchema", True).csv(str(chosen))
-    elif suffix == ".xml":
-        import pandas as pd
-        import xml.etree.ElementTree as ET
+    if remote:
+        from src.data_architecture.storage import read_bytes, read_text
 
-        root_el = ET.parse(chosen).getroot()
-        rows = [{child.tag: child.text for child in tx} for tx in root_el.findall(".//transaction")]
-        df = spark.createDataFrame(pd.DataFrame(rows))
-    elif suffix == ".jsonl":
-        df = spark.read.json(str(chosen))
+        suffix = Path(str(chosen)).suffix.lower()
+        if suffix == ".parquet":
+            df = spark.read.parquet(str(chosen))
+        elif suffix == ".csv":
+            df = spark.read.option("header", True).option("inferSchema", True).csv(str(chosen))
+        elif suffix == ".jsonl":
+            df = spark.read.json(str(chosen))
+        elif suffix == ".xml":
+            import pandas as pd
+
+            root_el = ET.fromstring(read_bytes(chosen))
+            rows = [{child.tag: child.text for child in tx} for tx in root_el.findall(".//transaction")]
+            df = spark.createDataFrame(pd.DataFrame(rows))
+        else:
+            raw = read_text(chosen).strip()
+            if raw.startswith("["):
+                df = spark.createDataFrame(json.loads(raw))
+            else:
+                df = spark.read.json(str(chosen))
     else:
-        df = _read_json_flexible(spark, chosen)
+        suffix = Path(chosen).suffix.lower()
+        if suffix == ".parquet":
+            df = spark.read.parquet(str(chosen))
+        elif suffix == ".csv":
+            df = spark.read.option("header", True).option("inferSchema", True).csv(str(chosen))
+        elif suffix == ".xml":
+            import pandas as pd
+
+            root_el = ET.parse(chosen).getroot()
+            rows = [{child.tag: child.text for child in tx} for tx in root_el.findall(".//transaction")]
+            df = spark.createDataFrame(pd.DataFrame(rows))
+        elif suffix == ".jsonl":
+            df = spark.read.json(str(chosen))
+        else:
+            df = _read_json_flexible(spark, chosen)
 
     if "timestamp" in df.columns:
         df = df.withColumn("timestamp", to_timestamp(col("timestamp")))

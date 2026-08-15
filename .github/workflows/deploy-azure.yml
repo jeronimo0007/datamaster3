@@ -1,13 +1,35 @@
-# Deploy Azure completo para apresentação (branch `azure`).
-# Secrets (Repository): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, TF_VAR_mongo_admin_password
+# Deploy Azure completo para apresentação.
+# Secrets (Repository): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#                       TF_VAR_mongo_admin_password, TF_VAR_airflow_admin_password
 # Opcional: TF_VAR_enable_analytics_stack=false | TF_VAR_name_suffix=banca2
 #
-# Fluxo: bootstrap state → terraform apply → build/push API Java → atualiza Container App → imprime URLs.
+# Triggers: branch `azure` | chamado pela main (multicloud) | workflow_dispatch
+#
+# Fluxo: bootstrap state → terraform apply → build/push API + Airflow →
+#        atualiza Container Apps → init do Airflow → dispara DAGs → imprime URLs.
 name: Deploy → Azure (Terraform)
 
 on:
   push:
     branches: [azure]
+  workflow_call:
+    inputs:
+      action:
+        description: "apply = sobe/atualiza | destroy = apaga a stack"
+        type: string
+        default: apply
+      terraform_dir:
+        description: "Diretorio Terraform"
+        type: string
+        default: infrastructure/terraform/apresentacao
+      enable_analytics_stack:
+        description: "Databricks + Synapse + AML (custo alto)"
+        type: boolean
+        default: false
+      name_suffix:
+        description: "Sufixo estável dos nomes"
+        type: string
+        default: banca
   workflow_dispatch:
     inputs:
       action:
@@ -33,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
+  TF_DIR: ${{ inputs.terraform_dir || github.event.inputs.terraform_dir || 'infrastructure/terraform/apresentacao' }}
   TF_IN_AUTOMATION: "true"
   TFSTATE_RG: rg-datamaster3-tfstate
   TFSTATE_SA: datamaster3tfstate
@@ -49,6 +71,7 @@ jobs:
       contents: read
     env:
       TF_VAR_mongo_admin_password: ${{ secrets.TF_VAR_mongo_admin_password }}
+      TF_VAR_airflow_admin_password: ${{ secrets.TF_VAR_airflow_admin_password }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -61,6 +84,10 @@ jobs:
           missing=0
           if [ -z "${TF_VAR_mongo_admin_password}" ]; then
             echo "::error::Defina o Repository secret TF_VAR_mongo_admin_password."
+            missing=1
+          fi
+          if [ -z "${TF_VAR_airflow_admin_password}" ]; then
+            echo "::error::Defina o Repository secret TF_VAR_airflow_admin_password."
             missing=1
           fi
           if [ -z "${AZURE_CLIENT_ID}" ] || [ -z "${AZURE_TENANT_ID}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
@@ -76,6 +103,8 @@ jobs:
           set -euo pipefail
           if [ -n "${{ secrets.TF_VAR_enable_analytics_stack }}" ]; then
             ANALYTICS="${{ secrets.TF_VAR_enable_analytics_stack }}"
+          elif [ -n "${{ inputs.enable_analytics_stack }}" ]; then
+            ANALYTICS="${{ inputs.enable_analytics_stack }}"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             ANALYTICS="${{ github.event.inputs.enable_analytics_stack }}"
           else
@@ -89,13 +118,15 @@ jobs:
 
           if [ -n "${{ secrets.TF_VAR_name_suffix }}" ]; then
             echo "TF_VAR_name_suffix=${{ secrets.TF_VAR_name_suffix }}" >> "$GITHUB_ENV"
+          elif [ -n "${{ inputs.name_suffix }}" ]; then
+            echo "TF_VAR_name_suffix=${{ inputs.name_suffix }}" >> "$GITHUB_ENV"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "TF_VAR_name_suffix=${{ github.event.inputs.name_suffix }}" >> "$GITHUB_ENV"
           else
             echo "TF_VAR_name_suffix=banca" >> "$GITHUB_ENV"
           fi
 
-          ACTION="${{ github.event.inputs.action || 'apply' }}"
+          ACTION="${{ inputs.action || github.event.inputs.action || 'apply' }}"
           echo "DEPLOY_ACTION=$ACTION" >> "$GITHUB_ENV"
 
       - name: Azure Login (OIDC)
@@ -189,6 +220,11 @@ jobs:
             echo "app=$(terraform output -raw container_app_api_name)"
             echo "fqdn=$(terraform output -raw container_app_api_fqdn)"
             echo "api_url=$(terraform output -raw container_app_api_url)"
+            echo "lake=$(terraform output -raw lake_uri)"
+            echo "airflow_url=$(terraform output -raw airflow_webserver_url)"
+            echo "airflow_web=$(terraform output -raw airflow_webserver_name)"
+            echo "airflow_scheduler=$(terraform output -raw airflow_scheduler_name)"
+            echo "airflow_init=$(terraform output -raw airflow_init_job_name)"
             echo "databricks=$(terraform output -raw databricks_workspace_url || true)"
             echo "synapse=$(terraform output -raw synapse_workspace_name || true)"
           } >> "$GITHUB_OUTPUT"
@@ -207,6 +243,20 @@ jobs:
           docker push "$ACR/fraud-api:apresentacao"
           docker push "$ACR/fraud-api:latest"
 
+      - name: Build and push Airflow (mesma stack)
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          ACR="${{ steps.out.outputs.acr }}"
+          ACR_NAME="${ACR%%.*}"
+          az acr login --name "$ACR_NAME"
+          docker build -f airflow/Dockerfile \
+            -t "$ACR/fraud-airflow:apresentacao" \
+            -t "$ACR/fraud-airflow:latest" \
+            .
+          docker push "$ACR/fraud-airflow:apresentacao"
+          docker push "$ACR/fraud-airflow:latest"
+
       - name: Update Container App with API image
         if: env.DEPLOY_ACTION != 'destroy'
         run: |
@@ -222,6 +272,60 @@ jobs:
             -g "$RG" -n "$APP" \
             --target-port 8080 \
             -o none
+
+      - name: Update Airflow with custom image + init + dispara DAGs
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          RG="${{ steps.out.outputs.rg }}"
+          ACR="${{ steps.out.outputs.acr }}"
+          ACR_NAME="${ACR%%.*}"
+          AF_WEB="${{ steps.out.outputs.airflow_web }}"
+          AF_INIT="${{ steps.out.outputs.airflow_init }}"
+          AIRFLOW_URL="${{ steps.out.outputs.airflow_url }}"
+          AF_PASS="${{ secrets.TF_VAR_airflow_admin_password }}"
+
+          az acr login --name "$ACR_NAME" >/dev/null
+
+          # webserver + scheduler apontam para a imagem custom (DAGs + código do pipeline)
+          az containerapp update \
+            -g "$RG" -n "$AF_WEB" \
+            --image "$ACR/fraud-airflow:apresentacao" \
+            -o none
+          az containerapp update \
+            -g "$RG" -n "${{ steps.out.outputs.airflow_scheduler }}" \
+            --image "$ACR/fraud-airflow:apresentacao" \
+            -o none
+
+          # dispara o job de init (migra SQLite + cria admin)
+          echo "Disparando job de init do Airflow ($AF_INIT)..."
+          az containerapp job start \
+            -g "$RG" -n "$AF_INIT" \
+            -o none || echo "job init já executado ou ainda criando"
+
+          # aguarda webserver e executa os DAGs via API
+          echo "Aguardando Airflow em $AIRFLOW_URL ..."
+          for i in $(seq 1 30); do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$AIRFLOW_URL/login/" || true)"
+            if [ "$code" = "200" ] || [ "$code" = "302" ]; then
+              echo "Airflow pronto (HTTP $code)"
+              break
+            fi
+            echo "tentativa $i: HTTP $code"
+            sleep 15
+          done
+
+          echo "Disparando DAG ingest_multi_source..."
+          curl -sS -u "admin:$AF_PASS" -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"dag_run_id":"ci_manual_run","conf":{}}' \
+            "$AIRFLOW_URL/api/v1/dags/ingest_multi_source/dagRuns" || echo "falha ao disparar ingest"
+
+          echo "Disparando DAG medallion_pipeline..."
+          curl -sS -u "admin:$AF_PASS" -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"dag_run_id":"ci_manual_run","conf":{}}' \
+            "$AIRFLOW_URL/api/v1/dags/medallion_pipeline/dagRuns" || echo "falha ao disparar medallion"
 
       - name: Wait for API health
         if: env.DEPLOY_ACTION != 'destroy'
@@ -262,6 +366,8 @@ jobs:
             echo "| Health | ${{ steps.out.outputs.api_url }}/health |"
             echo "| Analyze | \`POST ${{ steps.out.outputs.api_url }}/api/v1/transactions/analyze\` |"
             echo "| ACR | \`${{ steps.out.outputs.acr }}\` |"
+            echo "| Airflow (UI) | ${{ steps.out.outputs.airflow_url }} (admin / secret) |"
+            echo "| Data Lake | ${{ steps.out.outputs.lake }} (landing/bronze/silver/gold) |"
             DBX="${{ steps.out.outputs.databricks }}"
             SYN="${{ steps.out.outputs.synapse }}"
             if [ -n "$DBX" ] && [ "$DBX" != "null" ]; then
@@ -271,5 +377,6 @@ jobs:
               echo "| Synapse | \`$SYN\` (Synapse Studio) |"
             fi
             echo
+            echo "Pipeline: Airflow dispara ingestão multi-formato + Medallion (Bronze→DQ→Silver→Gold) no ADLS."
             echo "Portal: Resource groups → \`${{ steps.out.outputs.rg }}\`"
           } | tee -a "$GITHUB_STEP_SUMMARY"

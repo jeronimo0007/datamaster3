@@ -180,7 +180,7 @@ Para o analisador da banca localizar cada peça rapidamente:
 | Serving | [`api-java/`](api-java/) | API de score online |
 | Dashboard | [`src/dashboard/app.py`](src/dashboard/app.py) | UI analista (inclui LGPD) |
 | IaC Azure | [`infrastructure/terraform/apresentacao/`](infrastructure/terraform/apresentacao/) | Kafka + Mongo + ADLS + API |
-| IaC AWS (preparado) | [`infrastructure/terraform/aws/`](infrastructure/terraform/aws/) | S3 + mesma stack |
+| IaC AWS | [`infrastructure/terraform/aws/`](infrastructure/terraform/aws/) | S3 + ECS (Kafka/Mongo/Airflow/API) |
 
 ---
 
@@ -196,7 +196,7 @@ Para o analisador da banca localizar cada peça rapidamente:
 | 6 | **LGPD** | `POST /api/v1/lgpd/mask`, minimização, hash+salt, aba LGPD no dashboard |
 | 7 | **Arquitetura de dados** | Medallion + DQ gate + serving (ver seções 2–3) |
 | 8 | **Escalabilidade** | Airflow por camada, Spark batch, Kafka com partições/consumer groups, lake particionado |
-| — | **Multicloud** | Mesma stack em Docker, Azure e AWS preparado |
+| — | **Multicloud** | Mesma stack em Docker, Azure e AWS |
 | — | **Online (complemento)** | API + dashboard + portal provam o pipeline funcionando |
 
 ---
@@ -241,17 +241,22 @@ docker compose run --rm spark-job   # opcional PySpark
 
 Mesmos componentes; só muda o ambiente de execução e o object storage do lake.
 
-| Componente | Docker local | Azure | AWS (preparado) |
-|------------|--------------|-------|-----------------|
-| Orquestração | Airflow | Airflow | Airflow |
-| Processamento | Spark | Spark | Spark |
+| Componente | Docker local | Azure | AWS |
+|------------|--------------|-------|-----|
+| Orquestração | Airflow | **Airflow** (Container Apps) | **Airflow** (ECS Fargate) |
+| Processamento | Spark / pandas | Spark / pandas (mesmo job) | Spark / pandas (mesmo job) |
 | Streaming | **Kafka** | **Kafka** | **Kafka** |
-| NoSQL / perfis | **MongoDB** | **MongoDB** | **MongoDB** |
-| Lake (object storage) | MinIO | ADLS Gen2 | S3 |
-| Serving | api-java | api-java | api-java |
+| NoSQL / perfis | **MongoDB** | **MongoDB** (ACI) | **MongoDB** (ECS) |
+| Lake (object storage) | MinIO | **ADLS Gen2** (filesystem `lake`) | **S3** (mesmos paths) |
+| Serving | api-java | api-java | api-java (ECS + ALB) |
 | IaC | `docker-compose.yaml` | `terraform/apresentacao` | `terraform/aws` |
 
-Detalhe: [`infrastructure/MAPA_LOCAL_AZURE.md`](infrastructure/MAPA_LOCAL_AZURE.md)
+Na Azure e na AWS o pipeline roda igual ao Docker: o Airflow (imagem custom) executa
+ingestão multi-formato → `landing/`, e o Medallion Bronze → DQ → Silver → Gold,
+escrevendo no ADLS (Managed Identity + `adlfs`) ou no S3 (IAM task role + `s3fs`).
+
+Detalhe: [`infrastructure/MAPA_LOCAL_AZURE.md`](infrastructure/MAPA_LOCAL_AZURE.md) ·
+[`docs/deploy/APRESENTACAO_AWS.md`](docs/deploy/APRESENTACAO_AWS.md)
 
 ---
 

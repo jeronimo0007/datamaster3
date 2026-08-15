@@ -316,7 +316,7 @@ docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
         <ul>
           <li><strong>Local / Docker:</strong> Kafka — broker que eu opero no Compose.</li>
           <li><strong>Azure:</strong> Kafka — mesmo broker em Container Instances (ACI), mesmo contrato.</li>
-          <li><strong>AWS (preparado):</strong> Kafka — mesma stack no ECS/EKS.</li>
+          <li><strong>AWS:</strong> Kafka + Mongo + Airflow no ECS — mesma stack, lake no S3.</li>
         </ul>
         <p style="margin:0.45rem 0 0;"><em>Fala 10:</em> “Kafka é o padrão de log de eventos. Uso Kafka na mesa e o mesmo Kafka na nuvem — o contrato não muda (partições, consumer groups, replay). Um desenho, três lugares: Kafka = Kafka, MongoDB = MongoDB.”</p>
       </div>

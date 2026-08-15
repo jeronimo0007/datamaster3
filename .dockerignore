@@ -1,0 +1,18 @@
+# Exclui artefatos locais da imagem (o contexto do build é a raiz do repositório)
+.git
+.gitignore
+data/
+airflow/logs/
+airflow/data/
+docs/
+portal/
+banca/
+sql/
+infrastructure/
+docker-compose.yaml
+Makefile
+*.md
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/

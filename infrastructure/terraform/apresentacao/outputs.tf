@@ -6,8 +6,28 @@ output "storage_account_name" {
   value = azurerm_storage_account.datalake.name
 }
 
+output "lake_uri" {
+  value = local.lake_uri
+}
+
+output "airflow_webserver_url" {
+  value = "https://${azurerm_container_app.airflow_webserver.ingress[0].fqdn}"
+}
+
+output "airflow_webserver_name" {
+  value = azurerm_container_app.airflow_webserver.name
+}
+
+output "airflow_scheduler_name" {
+  value = azurerm_container_app.airflow_scheduler.name
+}
+
+output "airflow_init_job_name" {
+  value = azurerm_container_app_job.airflow_init.name
+}
+
 output "datalake_containers" {
-  value = ["landing", "bronze", "silver", "gold"]
+  value = ["lake"]
 }
 
 output "mongodb_fqdn" {

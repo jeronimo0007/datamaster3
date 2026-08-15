@@ -1,4 +1,13 @@
-# Copie para terraform.tfvars na branch aws (nao commitar valores sensiveis).
+# Copie para terraform.tfvars (nao commitar valores sensiveis).
 aws_region       = "sa-east-1"
 environment      = "dev"
+project_name     = "datamaster"
 lake_bucket_name = "datamaster-lake-seunome-2026"
+
+# Secrets — preferir TF_VAR_* no CI
+mongo_admin_password    = "TroqueEstaSenhaMongo"
+airflow_admin_password  = "TroqueEstaSenhaAirflow"
+
+# Opcionais: apos o primeiro push do CI, pode fixar a tag
+# airflow_container_image = "xxxxxxxxxxxx.dkr.ecr.sa-east-1.amazonaws.com/datamaster-airflow:latest"
+# api_container_image     = "xxxxxxxxxxxx.dkr.ecr.sa-east-1.amazonaws.com/datamaster-api:latest"

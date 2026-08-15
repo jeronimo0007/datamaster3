@@ -1,15 +1,30 @@
-# Terraform AWS — somente merge/push na branch `aws`.
+# Terraform AWS — Deploy → AWS (mesma stack do Docker / Azure)
+# Triggers: branch `aws` | chamado pela main (multicloud) | workflow_dispatch
 name: Deploy → AWS (Terraform)
 
 on:
   push:
     branches: [aws]
+  workflow_call:
+    inputs:
+      terraform_dir:
+        description: "Diretorio Terraform"
+        type: string
+        default: infrastructure/terraform/aws
+      deploy_action:
+        description: "apply ou destroy"
+        type: string
+        default: apply
   workflow_dispatch:
     inputs:
       terraform_dir:
         description: "Diretorio Terraform"
         required: true
         default: infrastructure/terraform/aws
+      deploy_action:
+        description: "apply ou destroy"
+        required: false
+        default: apply
 
 concurrency:
   group: deploy-aws
@@ -18,9 +33,16 @@ concurrency:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
     env:
-      TF_DIR: ${{ github.event.inputs.terraform_dir || 'infrastructure/terraform/aws' }}
+      TF_DIR: ${{ inputs.terraform_dir || github.event.inputs.terraform_dir || 'infrastructure/terraform/aws' }}
       AWS_DEFAULT_REGION: sa-east-1
+      DEPLOY_ACTION: ${{ inputs.deploy_action || github.event.inputs.deploy_action || 'apply' }}
+      TF_VAR_mongo_admin_password: ${{ secrets.TF_VAR_mongo_admin_password }}
+      TF_VAR_airflow_admin_password: ${{ secrets.TF_VAR_airflow_admin_password }}
+      TF_VAR_lake_bucket_name: ${{ secrets.AWS_LAKE_BUCKET_NAME }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,12 +54,22 @@ jobs:
           aws-region: sa-east-1
 
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
-      - name: Validar configuracao Terraform
-        working-directory: ${{ env.TF_DIR }}
+      - name: Validar secrets
         run: |
-          if [[ ! -f terraform.tfvars && -z "${{ secrets.AWS_LAKE_BUCKET_NAME }}" ]]; then
-            echo "Crie terraform.tfvars na branch aws ou defina o secret AWS_LAKE_BUCKET_NAME"
+          set -euo pipefail
+          if [ -z "${TF_VAR_lake_bucket_name}" ]; then
+            echo "::error::Defina o Repository secret AWS_LAKE_BUCKET_NAME"
+            exit 1
+          fi
+          if [ -z "${TF_VAR_mongo_admin_password}" ]; then
+            echo "::error::Defina o Repository secret TF_VAR_mongo_admin_password"
+            exit 1
+          fi
+          if [ -z "${TF_VAR_airflow_admin_password}" ]; then
+            echo "::error::Defina o Repository secret TF_VAR_airflow_admin_password"
             exit 1
           fi
 
@@ -46,13 +78,180 @@ jobs:
         run: terraform init -input=false
 
       - name: Terraform Plan
+        if: env.DEPLOY_ACTION != 'destroy'
         working-directory: ${{ env.TF_DIR }}
-        env:
-          TF_VAR_lake_bucket_name: ${{ secrets.AWS_LAKE_BUCKET_NAME }}
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
+        if: env.DEPLOY_ACTION != 'destroy'
         working-directory: ${{ env.TF_DIR }}
-        env:
-          TF_VAR_lake_bucket_name: ${{ secrets.AWS_LAKE_BUCKET_NAME }}
         run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Terraform Destroy
+        if: env.DEPLOY_ACTION == 'destroy'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform destroy -input=false -auto-approve
+
+      - name: Export outputs
+        if: env.DEPLOY_ACTION != 'destroy'
+        id: out
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          {
+            echo "cluster=$(terraform output -raw ecs_cluster_name)"
+            echo "ecr_airflow=$(terraform output -raw ecr_airflow_url)"
+            echo "ecr_api=$(terraform output -raw ecr_api_url)"
+            echo "airflow_url=$(terraform output -raw airflow_webserver_url)"
+            echo "airflow_web_svc=$(terraform output -raw airflow_webserver_service)"
+            echo "airflow_sched_svc=$(terraform output -raw airflow_scheduler_service)"
+            echo "airflow_init_family=$(terraform output -raw airflow_init_task_family)"
+            echo "airflow_web_family=$(terraform output -raw airflow_web_task_family)"
+            echo "airflow_sched_family=$(terraform output -raw airflow_scheduler_task_family)"
+            echo "api_svc=$(terraform output -raw api_service)"
+            echo "api_family=$(terraform output -raw api_task_family)"
+            echo "api_url=$(terraform output -raw api_url)"
+            echo "lake=$(terraform output -raw lake_uri)"
+            echo "subnets=$(terraform output -json public_subnet_ids | jq -r 'join(",")')"
+            echo "sg=$(terraform output -raw ecs_security_group_id)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login ECR
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          ECR="${{ steps.out.outputs.ecr_airflow }}"
+          REGISTRY="${ECR%%/*}"
+          aws ecr get-login-password --region "$AWS_DEFAULT_REGION" \
+            | docker login --username AWS --password-stdin "$REGISTRY"
+
+      - name: Build and push Airflow (mesma stack)
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          ECR="${{ steps.out.outputs.ecr_airflow }}"
+          docker build -f airflow/Dockerfile \
+            -t "$ECR:apresentacao" \
+            -t "$ECR:latest" \
+            .
+          docker push "$ECR:apresentacao"
+          docker push "$ECR:latest"
+
+      - name: Build and push API Java
+        if: env.DEPLOY_ACTION != 'destroy'
+        run: |
+          set -euo pipefail
+          ECR="${{ steps.out.outputs.ecr_api }}"
+          docker build -f api-java/Dockerfile \
+            -t "$ECR:apresentacao" \
+            -t "$ECR:latest" \
+            api-java
+          docker push "$ECR:apresentacao"
+          docker push "$ECR:latest"
+
+      - name: Update ECS task definitions with custom images + init + DAGs
+        if: env.DEPLOY_ACTION != 'destroy'
+        env:
+          AF_PASS: ${{ secrets.TF_VAR_airflow_admin_password }}
+        run: |
+          set -euo pipefail
+          CLUSTER="${{ steps.out.outputs.cluster }}"
+          ECR_AF="${{ steps.out.outputs.ecr_airflow }}"
+          ECR_API="${{ steps.out.outputs.ecr_api }}"
+          SUBNETS="${{ steps.out.outputs.subnets }}"
+          SG="${{ steps.out.outputs.sg }}"
+          AIRFLOW_URL="${{ steps.out.outputs.airflow_url }}"
+
+          update_image() {
+            local family="$1"
+            local container="$2"
+            local image="$3"
+            local td
+            td="$(aws ecs describe-task-definition --task-definition "$family" \
+              --query 'taskDefinition' --output json)"
+            echo "$td" | jq --arg IMG "$image" --arg C "$container" '
+              .containerDefinitions |= map(if .name == $C then .image = $IMG else . end)
+              | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                    .compatibilities, .registeredAt, .registeredBy)
+            ' > /tmp/td-new.json
+            aws ecs register-task-definition --cli-input-json file:///tmp/td-new.json >/dev/null
+          }
+
+          echo "Registrando task defs com imagens custom..."
+          update_image "${{ steps.out.outputs.airflow_init_family }}" "airflow-init" "$ECR_AF:apresentacao"
+          update_image "${{ steps.out.outputs.airflow_web_family }}" "airflow-webserver" "$ECR_AF:apresentacao"
+          update_image "${{ steps.out.outputs.airflow_sched_family }}" "airflow-scheduler" "$ECR_AF:apresentacao"
+          update_image "${{ steps.out.outputs.api_family }}" "api" "$ECR_API:apresentacao"
+
+          echo "Atualizando services ECS..."
+          aws ecs update-service --cluster "$CLUSTER" \
+            --service "${{ steps.out.outputs.airflow_web_svc }}" \
+            --task-definition "${{ steps.out.outputs.airflow_web_family }}" \
+            --force-new-deployment >/dev/null
+          aws ecs update-service --cluster "$CLUSTER" \
+            --service "${{ steps.out.outputs.airflow_sched_svc }}" \
+            --task-definition "${{ steps.out.outputs.airflow_sched_family }}" \
+            --force-new-deployment >/dev/null
+          aws ecs update-service --cluster "$CLUSTER" \
+            --service "${{ steps.out.outputs.api_svc }}" \
+            --task-definition "${{ steps.out.outputs.api_family }}" \
+            --desired-count 1 \
+            --force-new-deployment >/dev/null
+
+          # Init: migra SQLite no EFS + cria admin
+          echo "Disparando task de init do Airflow..."
+          SUBNET_CSV="$SUBNETS"
+          aws ecs run-task \
+            --cluster "$CLUSTER" \
+            --task-definition "${{ steps.out.outputs.airflow_init_family }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_CSV}],securityGroups=[${SG}],assignPublicIp=ENABLED}" \
+            >/tmp/init-task.json || echo "init ja em andamento"
+
+          echo "Aguardando Airflow em $AIRFLOW_URL ..."
+          for i in $(seq 1 40); do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$AIRFLOW_URL/health" || true)"
+            if [ "$code" = "200" ]; then
+              echo "Airflow pronto (HTTP $code)"
+              break
+            fi
+            echo "tentativa $i: HTTP $code"
+            sleep 15
+          done
+
+          echo "Disparando DAG ingest_multi_source..."
+          curl -sS -u "admin:$AF_PASS" -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"dag_run_id\":\"ci_manual_run_$(date +%s)\",\"conf\":{}}" \
+            "$AIRFLOW_URL/api/v1/dags/ingest_multi_source/dagRuns" || echo "falha ao disparar ingest"
+
+          echo "Disparando DAG medallion_pipeline..."
+          curl -sS -u "admin:$AF_PASS" -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"dag_run_id\":\"ci_manual_run_$(date +%s)\",\"conf\":{}}" \
+            "$AIRFLOW_URL/api/v1/dags/medallion_pipeline/dagRuns" || echo "falha ao disparar medallion"
+
+      - name: Resumo da apresentacao
+        if: always()
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Deploy AWS — ${DEPLOY_ACTION}"
+            echo
+            if [ "${DEPLOY_ACTION}" = "destroy" ]; then
+              echo "Stack destruida."
+              exit 0
+            fi
+            echo "| Item | Valor |"
+            echo "|------|-------|"
+            echo "| ECS Cluster | \`${{ steps.out.outputs.cluster }}\` |"
+            echo "| Airflow (UI) | ${{ steps.out.outputs.airflow_url }} (admin / secret) |"
+            echo "| API | ${{ steps.out.outputs.api_url }}/health |"
+            echo "| ECR Airflow | \`${{ steps.out.outputs.ecr_airflow }}\` |"
+            echo "| ECR API | \`${{ steps.out.outputs.ecr_api }}\` |"
+            echo "| Data Lake | ${{ steps.out.outputs.lake }} (landing/bronze/silver/gold) |"
+            echo
+            echo "Pipeline: Airflow dispara ingestão multi-formato + Medallion (Bronze→DQ→Silver→Gold) no S3."
+            echo "Mesma stack do Docker local e da Azure (Kafka + Mongo + Airflow)."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
