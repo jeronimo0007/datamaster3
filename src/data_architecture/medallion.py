@@ -62,14 +62,41 @@ def project_root() -> Path:
 
 
 def default_layout(root: Path | None = None) -> MedallionLayout:
-    """Layout local padrão: data/lake (espelho ADLS na Azure)."""
+    """
+    Layout padrão do lake.
+
+    - Se `LAKE_BASE_URI` estiver definido (ADLS / S3 / outro),
+      usa essa URI como base
+      (ex.: `abfss://lake@account.dfs.core.windows.net` ou `s3://bucket`).
+    - Senão, usa `data/lake` local.
+    """
+    remote = os.environ.get("LAKE_BASE_URI", "").strip()
+    if remote:
+        if remote.startswith("file://"):
+            return MedallionLayout(base_uri=Path(remote.replace("file://", "")).as_uri())
+        return MedallionLayout(base_uri=remote.rstrip("/"))
     base = root or project_root()
     lake = base / "data" / "lake"
     lake.mkdir(parents=True, exist_ok=True)
     return MedallionLayout(base_uri=lake.as_uri())
 
 
-def landing_dir(root: Path | None = None) -> Path:
+def landing_dir(root: Path | None = None) -> Path | str:
+    """
+    Raiz da zona landing.
+
+    - Se `LANDING_BASE_URI` estiver definido, retorna a URI remota
+      (ex.: `abfss://.../landing` ou `s3://bucket/landing`).
+    - Se começar com `file://`, converte para Path local.
+    - Senão, usa `data/landing` local.
+    """
+    remote = os.environ.get("LANDING_BASE_URI", "").strip()
+    if remote:
+        if remote.startswith("file://"):
+            path = Path(remote.replace("file://", ""))
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        return remote.rstrip("/")
     base = root or project_root()
     path = base / "data" / "landing"
     path.mkdir(parents=True, exist_ok=True)

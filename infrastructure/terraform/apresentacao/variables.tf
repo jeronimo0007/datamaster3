@@ -63,3 +63,16 @@ variable "api_container_image" {
   type        = string
   default     = null
 }
+
+variable "airflow_container_image" {
+  description = "Imagem custom do Airflow no ACR (contém DAGs + código do pipeline). null = imagem base até o build."
+  type        = string
+  default     = null
+}
+
+variable "airflow_admin_password" {
+  type        = string
+  sensitive   = true
+  description = "Senha do usuário admin do Airflow na Azure."
+  default     = "admin123ChangeMe"
+}

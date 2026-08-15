@@ -9,7 +9,7 @@ Plataforma de **engenharia de dados** para antifraude: camadas Medallion, qualid
 ## Valor
 
 - Bronze fiel à origem; Silver só sobe com DQ; Gold pronto para consumo.
-- **Mesma stack** em Docker, Azure e AWS (preparado) — sem trocar Kafka por outro produto, nem Mongo por outro banco.
+- **Mesma stack** em Docker, Azure e AWS — sem trocar Kafka por outro produto, nem Mongo por outro banco.
 - Demo local prova o pipeline; Terraform sobe o mesmo desenho.
 
 ## Papéis
@@ -23,7 +23,7 @@ Plataforma de **engenharia de dados** para antifraude: camadas Medallion, qualid
 |---|--------|
 | Pipeline de dados + orquestração | Comparar “serviços equivalentes” de cada cloud |
 | Kafka + Mongo + Spark + Airflow | Postgres / Redis / filas de e-mail no núcleo |
-| Azure (demo cloud) + AWS preparado | VPS / k3s |
+| Azure (demo cloud) + AWS (mesmo pipeline) | VPS / k3s |
 
 ## Riscos e controles
 
